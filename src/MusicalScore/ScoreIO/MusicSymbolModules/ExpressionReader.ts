@@ -458,6 +458,24 @@ export class ExpressionReader {
                         break;
                         case "continue":
                         break;
+                        case "discontinue":
+                            // End the line without the lift drawn for type="stop".
+                            if (this.openPedal) {
+                                this.openPedal.OpenEnd = true;
+                                this.endOpenPedal(currentMeasure, endTimestamp);
+                            }
+                        break;
+                        case "resume":
+                            // Start a line without the downstroke drawn for type="start".
+                            if (this.openPedal && this.openPedal.IsLine) {
+                                this.endOpenPedal(currentMeasure);
+                            }
+                            this.createNewMultiExpressionIfNeeded(currentMeasure, -1);
+                            this.openPedal = new Pedal(line, sign);
+                            this.openPedal.OpenBegin = true;
+                            this.getMultiExpression.PedalStart = this.openPedal;
+                            this.openPedal.ParentStartMultiExpression = this.getMultiExpression;
+                        break;
                         default:
                         break;
                     }

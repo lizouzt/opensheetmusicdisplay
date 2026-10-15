@@ -5,10 +5,47 @@ import {AccidentalEnum} from "../../Common/DataObjects/Pitch";
 import { EngravingRules } from "../Graphical/EngravingRules";
 import { PlacementEnum } from "./Expressions/AbstractExpression";
 
+/** How a later harmony-chord or bass sits relative to what precedes it. */
+export enum HarmonyArrangement {
+    Horizontal = "horizontal",
+    Vertical = "vertical",
+    Diagonal = "diagonal",
+}
+
+/** One root, numeral, or deprecated function inside a harmony element. */
+export class HarmonyChord {
+    public RootPitch: Pitch;
+    public ChordKind: ChordSymbolEnum;
+    /** kind@text, when the score gives an explicit symbol such as "7". */
+    public KindText: string;
+    public NumeralText: string;
+    /** Semitones from numeral-alter. 0 is stored and not printed. */
+    public NumeralAlter: number;
+    public NumeralAlterPrint: boolean = true;
+    public NumeralAlterOnLeft: boolean = false;
+    /** numeral-fifths. Undefined when the harmony has no numeral-key. */
+    public NumeralFifths: number;
+    public NumeralMode: string;
+    public NumeralKeyPrint: boolean = true;
+    public InversionText: string;
+    public BassPitch: Pitch;
+    /** bass-separator text. Undefined means the usual slash. */
+    public BassSeparator: string;
+    public BassArrangement: HarmonyArrangement;
+    public Degrees: Degree[] = [];
+    /** Deprecated function text, such as "V". */
+    public FunctionText: string;
+}
+
 export class ChordSymbolContainer {
     private rootPitch: Pitch;
     private chordKind: ChordSymbolEnum;
     public NumeralText: string;
+    /** Set for deprecated <function>. The drawn text still includes it. */
+    public FunctionText: string;
+    /** Later harmony-chords in the same element, including the first when arrangement or bass text is involved. */
+    public HarmonyChords: HarmonyChord[] = [];
+    public Arrangement: HarmonyArrangement;
     private bassPitch: Pitch;
     private degrees: Degree[];
     private rules: EngravingRules;
@@ -50,6 +87,9 @@ export class ChordSymbolContainer {
         // if (!chordSymbol) { // undefined
         //     return; // handled in VexFlowGraphicalSymbolFactory.createChordSymbols
         // }
+        if (chordSymbol.HarmonyChords.length > 0) {
+            return chordSymbol.formatHarmony(transposeHalftones, keyInstruction);
+        }
         if (chordSymbol.NumeralText !== undefined) { // if(chordSymbol.NumeralText) doesn't match empty string
             return chordSymbol.NumeralText;
         }
@@ -161,6 +201,98 @@ export class ChordSymbolContainer {
             text += chordSymbol.getTextForAccidental(transposedBassPitch.Accidental);
         }
         return text;
+    }
+
+    private formatHarmony(transposeHalftones: number, keyInstruction: KeyInstruction): string {
+        const parts: string[] = [];
+        for (const chord of this.HarmonyChords) {
+            parts.push(this.formatHarmonyChord(chord, transposeHalftones, keyInstruction));
+        }
+        if (parts.length <= 1) {
+            return parts[0] ?? "";
+        }
+        // Vertical stacks the next chord below a horizontal line. Horizontal and diagonal use a slash;
+        // diagonal also drops the next chord onto the following line.
+        if (this.Arrangement === HarmonyArrangement.Vertical) {
+            return parts.join("\n—\n");
+        }
+        if (this.Arrangement === HarmonyArrangement.Diagonal) {
+            return parts[0] + parts.slice(1).map((part: string) => "\n/ " + part).join("");
+        }
+        return parts.join(" / ");
+    }
+
+    private formatHarmonyChord(chord: HarmonyChord, transposeHalftones: number, keyInstruction: KeyInstruction): string {
+        let text: string = "";
+        if (chord.NumeralFifths !== undefined && chord.NumeralKeyPrint) {
+            text += this.keySignatureText(chord.NumeralFifths);
+            if (chord.NumeralMode && chord.NumeralMode !== "major") {
+                text += chord.NumeralMode + " ";
+            }
+        }
+        const alterText: string = chord.NumeralAlter && chord.NumeralAlterPrint ? this.numeralAlterText(chord.NumeralAlter) : "";
+        const body: string = chord.NumeralText ?? chord.FunctionText ?? this.rootLetter(chord.RootPitch, transposeHalftones, keyInstruction);
+        if (chord.NumeralAlterOnLeft) {
+            text += alterText + body;
+        } else {
+            text += body + alterText;
+        }
+        if (chord.InversionText) {
+            text += chord.InversionText;
+        } else if (chord.FunctionText !== undefined && chord.NumeralText === undefined) {
+            const kindText: string = chord.KindText ?? this.getTextFromChordKindEnum(chord.ChordKind);
+            if (kindText) {
+                text += kindText;
+            }
+        }
+        if (chord.BassPitch) {
+            text = this.appendBass(text, this.pitchLetter(chord.BassPitch, transposeHalftones, keyInstruction), chord);
+        }
+        return text;
+    }
+
+    private appendBass(text: string, bass: string, chord: HarmonyChord): string {
+        const word: string = chord.BassSeparator;
+        if (chord.BassArrangement === HarmonyArrangement.Vertical) {
+            return word !== undefined ? `${text}\n${word} ${bass}` : `${text}\n${bass}`;
+        }
+        if (chord.BassArrangement === HarmonyArrangement.Diagonal) {
+            return word !== undefined ? `${text}\n/ ${word} ${bass}` : `${text}\n/ ${bass}`;
+        }
+        return word !== undefined ? `${text} ${word} ${bass}` : `${text}/${bass}`;
+    }
+
+    private rootLetter(root: Pitch, transposeHalftones: number, keyInstruction: KeyInstruction): string {
+        if (!root) {
+            return "";
+        }
+        return this.pitchLetter(root, transposeHalftones, keyInstruction);
+    }
+
+    private pitchLetter(pitch: Pitch, transposeHalftones: number, keyInstruction: KeyInstruction): string {
+        let transposed: Pitch = pitch;
+        if (MusicSheetCalculator.transposeCalculator) {
+            transposed = MusicSheetCalculator.transposeCalculator.transposePitch(pitch, keyInstruction, transposeHalftones, true);
+        }
+        return Pitch.getNoteEnumString(transposed.FundamentalNote) + this.getTextForAccidental(transposed.Accidental);
+    }
+
+    private keySignatureText(fifths: number): string {
+        if (!fifths) {
+            return "";
+        }
+        const glyph: string = fifths > 0
+            ? this.getTextForAccidental(AccidentalEnum.SHARP)
+            : this.getTextForAccidental(AccidentalEnum.FLAT);
+        return glyph.repeat(Math.abs(fifths));
+    }
+
+    private numeralAlterText(alter: number): string {
+        try {
+            return this.getTextForAccidental(Pitch.AccidentalFromHalfTones(alter));
+        } catch {
+            return "";
+        }
     }
 
     private getTextForAccidental(alteration: AccidentalEnum): string {

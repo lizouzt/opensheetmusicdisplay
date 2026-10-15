@@ -1,7 +1,7 @@
 import {Instrument} from "../Instrument";
 import {MusicSheet} from "../MusicSheet";
 import {VoiceGenerator} from "./VoiceGenerator";
-import {Staff} from "../VoiceData/Staff";
+import {Staff, StaffLineDetail} from "../VoiceData/Staff";
 import {SourceMeasure} from "../VoiceData/SourceMeasure";
 import {SourceStaffEntry} from "../VoiceData/SourceStaffEntry";
 import {ClefInstruction} from "../VoiceData/Instructions/ClefInstruction";
@@ -235,17 +235,21 @@ export class InstrumentReader {
           }
           const staffDetailsNodes: IXmlElement[] = xmlNode.elements("staff-details"); // there can be multiple, even if redundant. see #1041
           for (const staffDetailsNode of staffDetailsNodes) {
+            let staffNumber: number = 1;
+            const staffNumberAttr: Attr = staffDetailsNode.attribute("number");
+            if (staffNumberAttr) {
+              staffNumber = parseInt(staffNumberAttr.value, 10);
+            }
+            const staff: Staff = this.instrument.Staves[staffNumber - 1];
+            if (!staff) {
+              continue;
+            }
             const staffLinesNode: IXmlElement = staffDetailsNode.element("staff-lines");
             if (staffLinesNode) {
-              let staffNumber: number = 1;
-              const staffNumberAttr: Attr = staffDetailsNode.attribute("number");
-              if (staffNumberAttr) {
-                staffNumber = parseInt(staffNumberAttr.value, 10);
-              }
-              const staff: Staff = this.instrument.Staves[staffNumber - 1];
               staff.StafflineCount = parseInt(staffLinesNode.value, 10);
               staff.xmlStafflineCount = isNaN(staff.StafflineCount) ? undefined : staff.StafflineCount;
             }
+            this.readStaffLineDetails(staff, staffDetailsNode);
           }
           // check multi measure rest
           const measureStyle: IXmlElement = xmlNode.element("measure-style");
@@ -845,6 +849,33 @@ export class InstrumentReader {
     key.Parent = entry;
     const position: number = entry.Instructions[0] instanceof ClefInstruction ? 1 : 0;
     entry.Instructions.splice(position, 0, key);
+  }
+
+  /** Reads <line-detail> onto the staff. A later detail for the same line replaces the earlier one. */
+  private readStaffLineDetails(staff: Staff, staffDetailsNode: IXmlElement): void {
+    const lineDetailNodes: IXmlElement[] = staffDetailsNode.elements("line-detail");
+    for (let lineIndex: number = 0; lineIndex < lineDetailNodes.length; lineIndex++) {
+      const lineNode: IXmlElement = lineDetailNodes[lineIndex];
+      const lineAttr: Attr = lineNode.attribute("line");
+      if (!lineAttr) {
+        continue;
+      }
+      const lineNumber: number = parseInt(lineAttr.value, 10);
+      if (isNaN(lineNumber)) {
+        continue;
+      }
+      const detail: StaffLineDetail = new StaffLineDetail(lineNumber);
+      detail.Visible = lineNode.attribute("print-object")?.value !== "no";
+      const widthValue: string = lineNode.attribute("width")?.value;
+      if (widthValue) {
+        detail.WidthTenths = parseFloat(widthValue);
+      }
+      const colorValue: string = lineNode.attribute("color")?.value;
+      if (colorValue) {
+        detail.Color = colorValue;
+      }
+      staff.setLineDetail(detail);
+    }
   }
 
   /** Measure-repeat lengths supported by the renderer. */

@@ -5,6 +5,7 @@ import { Voice } from "./VoiceData/Voice";
 import { Staff } from "./VoiceData/Staff";
 import { SubInstrument } from "./SubInstrument";
 import { MidiInstrument } from "./VoiceData/Instructions/ClefInstruction";
+import { PartLink } from "./PartLink";
 
 export class Instrument extends InstrumentalGroup {
 
@@ -36,6 +37,8 @@ export class Instrument extends InstrumentalGroup {
     private subInstruments: SubInstrument[] = [];
     private partAbbreviation: string;
     private partAbbreviationPrintObject: boolean = true;
+    /** MusicXML 4.0 part-link entries. Paths are relative to the root of the compressed file. */
+    private partLinks: PartLink[] = [];
 
     public get Voices(): Voice[] {
         return this.voices;
@@ -122,6 +125,10 @@ export class Instrument extends InstrumentalGroup {
     }
     public set PartAbbreviationPrintObject(value: boolean) {
         this.partAbbreviationPrintObject = value;
+    }
+    /** Linked part files from &lt;part-link&gt;. Empty when the score has none. */
+    public get PartLinks(): PartLink[] {
+        return this.partLinks;
     }
 
     public get Visible(): boolean {

@@ -1,6 +1,6 @@
 # MusicXML 4.0 / 4.1 支持矩阵
 
-阶段 2 的运行时结论。WP-1 与 WP-3 已按实现后的结果改过。除这两处外，引擎是 OSMD `2.2.1-dev` 提交 `a308225e`。打包三行在 `eea91c1f`（WP-1）上用单元测试重测。踏板两行在 `ac248c9d`（WP-3）上用单元测试和 SVG 重测。
+阶段 2 的运行时结论。WP-1、WP-3 与 WP-4 已按实现后的结果改过。除这三处外，引擎是 OSMD `2.2.1-dev` 提交 `a308225e`。打包三行在 `eea91c1f`（WP-1）上用单元测试重测。踏板两行在 `ac248c9d`（WP-3）上用单元测试和 SVG 重测。级数和弦在 `d299b30b`（WP-4）上用单元测试和 SVG 重测。
 
 ## 怎么测的
 
@@ -8,7 +8,7 @@
 - 测试文件由本项目编写，放在 `test/data/test_mxl4_*`。`version` 为 `4.0` 或 `4.1`，预期渲染写在 `<identification><miscellaneous>`。2026-10-15 用 `xmllint --nonet --schema` 校验：全部 `test_mxl4_*.musicxml` 通过 `musicxml.xsd`；`test_mxl4_packaging.mxl` 里的 `META-INF/container.xml` 通过 `container.xsd`，其中的 `score.musicxml` 与 `P1.musicxml` 通过 `musicxml.xsd`。`mimetype` 是压缩包的第一个条目，存储方式为不压缩，内容为 `application/vnd.recordare.musicxml`。
 - 运行方式：用构建产物 `build/opensheetmusicdisplay.min.js`，在 jsdom 里以 SVG 后端加载并渲染。记录控制台 error/warn、`SheetErrors`、声部移调、和弦文本、踏板与波浪线等表达式、音符上的变音记号、演奏乐器、琶音类型、连线和符干方向。渲染图在 `fork-docs/evidence/`。
 - 空的 `<multiple-rest>` 不能通过 XSD，仓库里只保留内容为 `2` 的合法文件。空元素只在内存中探测，不提交。
-- 判定只用这五档：完整支持、部分支持、不支持、忽略但不报错、报错。完整支持目前是 `<metronome print-object>` 的印刷行为、多个 rootfile 时选中第一份 MusicXML，以及踏板 `discontinue` / `resume` 的线段。
+- 判定只用这五档：完整支持、部分支持、不支持、忽略但不报错、报错。完整支持目前包括 `<metronome print-object>` 的印刷行为、多个 rootfile 时选中第一份 MusicXML、踏板 `discontinue` / `resume`，以及级数和弦的排列、低音分隔和弃用的 `<function>`。明细见文末汇总。
 
 版权：这些文件是本项目自写的最小乐谱，按 `SAMPLE_COPYRIGHT_AUDIT.md` 为 A 级。没有复制受版权保护的乐谱。
 
@@ -29,7 +29,7 @@
 | 条目 | 规范 | 测试文件 | 判定 | 证据 | 工作包 |
 |---|---|---|---|---|---|
 | `<assess>` | [assess](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/assess/)，[Issue 294](https://github.com/w3c-cg/musicxml/issues/294) | `test/data/test_mxl4_listen.musicxml` | 忽略但不报错 | `type="no"` 未进入音符模型。加载与渲染成功，无控制台错误。[evidence](evidence/test_mxl4_listen.svg) | WP-8 |
-| `<bass-separator>` | [bass-separator](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/bass-separator/)，[Issue 307](https://github.com/w3c-cg/musicxml/issues/307) | `test/data/test_mxl4_numeral.musicxml` | 忽略但不报错 | 分隔文本 “on” 与低音 G 都没有画出来。和弦对象上有 bass 音高，绘制文本只有 “V”。[evidence](evidence/test_mxl4_numeral.svg) | WP-4 |
+| `<bass-separator>` | [bass-separator](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/bass-separator/)，[Issue 307](https://github.com/w3c-cg/musicxml/issues/307) | `test/data/test_mxl4_numeral.musicxml`；断言在 `HarmonyNumeral_Test.ts` | 完整支持 | 分隔文本是 “on”，低音是 G。画出的第一行是 “bV6 on G”，不是默认的斜线。[evidence](evidence/test_mxl4_numeral.svg) | WP-4 |
 | `<concert-score>` | [concert-score](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/concert-score/)，[Issue 39](https://github.com/w3c-cg/musicxml/issues/39) / [279](https://github.com/w3c-cg/musicxml/issues/279) | `test/data/test_mxl4_concert_score.musicxml` | 忽略但不报错 | 谱号路径与另一份高音谱号单簧管文件相同，乐器 `transpose` 为 0。没有音乐会调标记，也没有分谱视图。谱面文字只有 “Clarinet”。[evidence](evidence/test_mxl4_concert_score.svg) | WP-2 |
 | `<first>` | [first](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/first/)，[Issue 283](https://github.com/w3c-cg/musicxml/issues/283) | `test/data/test_mxl4_swing.musicxml` | 忽略但不报错 | 方向文字 “Swing” 被画出来，那是 `<words>`，不是摇摆比例。表达式上没有 `first`/`second` 数值。[evidence](evidence/test_mxl4_swing.svg) | WP-8 |
 | `<for-part>` | [for-part](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/for-part/)，[Issue 279](https://github.com/w3c-cg/musicxml/issues/279) | `test/data/test_mxl4_concert_score.musicxml` | 忽略但不报错 | 与 `<concert-score>` 同一文件。没有分谱移调或分谱谱号。 | WP-2 |
@@ -38,12 +38,12 @@
 | `<listen>` | [listen](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/listen/)，[Issue 294](https://github.com/w3c-cg/musicxml/issues/294) | `test/data/test_mxl4_listen.musicxml` | 忽略但不报错 | 容器及其子元素都没有进入音符。渲染成功，无控制台错误。 | WP-8 |
 | `<listening>` | [listening](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/listening/)，[Issue 294](https://github.com/w3c-cg/musicxml/issues/294) | `test/data/test_mxl4_listening.musicxml` | 忽略但不报错 | 谱面文字 “follow” 来自 `<words>`。没有 sync 的 type 或 latency。[evidence](evidence/test_mxl4_listening.svg) | WP-8 |
 | 一个 `<note>` 内多个 `<instrument>` | [instrument](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/instrument/)，[Issue 277](https://github.com/w3c-cg/musicxml/issues/277) | `test/data/test_mxl4_multiple_instrument.musicxml` | 部分支持 | 声部上两个乐器都在（Oboe 1 / Oboe 2，MIDI 68）。音符的 `PlaybackInstrumentId` 只有最后一个 `P1-I2`。只画了一个符头。[evidence](evidence/test_mxl4_multiple_instrument.svg) | WP-8 |
-| `<numeral>` | [numeral](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml` | 部分支持 | 同一 `<harmony>` 里有两个 numeral。模型与 SVG 只有第一个 “V”，第二个 “ii” 不在。低音、转位文本和排列都没有画出来。 | WP-4 |
-| `<numeral-alter>` | [numeral-alter](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral-alter/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml` | 忽略但不报错 | 测试值是 `0`，即使正确实现也不会画出变音。和弦模型没有 alter 字段，不能记成已支持。绘制文本只有 “V”。 | WP-4 |
-| `<numeral-fifths>` | [numeral-fifths](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral-fifths/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml` | 忽略但不报错 | `-1` 没有出现在模型或 SVG 里。 | WP-4 |
-| `<numeral-key>` | [numeral-key](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral-key/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml` | 忽略但不报错 | `print-object="yes"` 的级数调号没有画出来。 | WP-4 |
-| `<numeral-mode>` | [numeral-mode](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral-mode/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml` | 忽略但不报错 | `major` 没有单独存储或显示。 | WP-4 |
-| `<numeral-root>` | [numeral-root](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral-root/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml` | 部分支持 | 第一个 root 的 `text="V"`（值 5）保存在和弦上并画成 “V”。同一 harmony 里第二个 root `text="ii"` 被丢掉。 | WP-4 |
+| `<numeral>` | [numeral](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml`；断言在 `HarmonyNumeral_Test.ts` | 完整支持 | 同一 `<harmony>` 里两个 numeral 都在。第一行 “bV6 on G”，下一行 “/ ii”。[evidence](evidence/test_mxl4_numeral.svg) | WP-4 |
+| `<numeral-alter>` | [numeral-alter](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral-alter/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml`；断言在 `HarmonyNumeral_Test.ts` | 完整支持 | 测试值是 `0`，存在 `HarmonyChord.NumeralAlter` 且断言为 0。0 不印变音，画面上没有多出来的记号。非 0 的值用和弦变音记号画在级数右侧；`location="left"` 时画在左侧。 | WP-4 |
+| `<numeral-fifths>` | [numeral-fifths](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral-fifths/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml`；断言在 `HarmonyNumeral_Test.ts` | 完整支持 | `-1` 存在模型里。`print-object="yes"` 时在级数前写出一个降号，SVG 文本以 “bV6” 开头。 | WP-4 |
+| `<numeral-key>` | [numeral-key](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral-key/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml`；断言在 `HarmonyNumeral_Test.ts` | 完整支持 | `print-object="yes"`。调号按 `numeral-fifths` 画成升降号文字，不是单独的谱号图形。`print-object="no"` 时不画。 | WP-4 |
+| `<numeral-mode>` | [numeral-mode](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral-mode/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml`；断言在 `HarmonyNumeral_Test.ts` | 完整支持 | `major` 存在模型里。大调不另写 “major”。其他调式会写在调号和级数之间。 | WP-4 |
+| `<numeral-root>` | [numeral-root](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/numeral-root/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml`；断言在 `HarmonyNumeral_Test.ts` | 完整支持 | 两个 root 的 `text` 都在：`V` 和 `ii`。SVG 里都能看到。 | WP-4 |
 | `<other-listen>` | [other-listen](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/other-listen/)，[Issue 294](https://github.com/w3c-cg/musicxml/issues/294) | `test/data/test_mxl4_listen.musicxml` | 忽略但不报错 | `type="cue"`、文本 “breath” 不在模型或 SVG 中。 | WP-8 |
 | `<other-listening>` | [other-listening](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/other-listening/)，[Issue 294](https://github.com/w3c-cg/musicxml/issues/294) | `test/data/test_mxl4_listening.musicxml` | 忽略但不报错 | `type="section"`、文本 “verse” 不在模型或 SVG 中。 | WP-8 |
 | `<part-clef>` | [part-clef](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/part-clef/)，[Issue 55](https://github.com/w3c-cg/musicxml/issues/55) | `test/data/test_mxl4_concert_score.musicxml` | 忽略但不报错 | 文件要求分谱低音谱号（F4）。画出的谱号路径与高音谱号单簧管文件一致，不是低音谱号。 | WP-2 |
@@ -63,8 +63,8 @@
 | 条目 | 规范 | 测试文件 | 判定 | 证据 | 工作包 |
 |---|---|---|---|---|---|
 | `<double above>` | [double](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/double/)，[Issue 368](https://github.com/w3c-cg/musicxml/issues/368) | `test/data/test_mxl4_double_above.musicxml` | 忽略但不报错 | `chromatic` 为 0 且被读到，`PlaybackTranspose` 为 0。`above="yes"` 没有把高八度重叠加进移调。谱面仍是 C4。[evidence](evidence/test_mxl4_double_above.svg) | WP-6 |
-| `<bass arrangement>` | [bass](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/bass/)，[Issue 307](https://github.com/w3c-cg/musicxml/issues/307) | `test/data/test_mxl4_numeral.musicxml` | 忽略但不报错 | `arrangement="horizontal"` 没有改变绘制。低音字母没有出现。 | WP-4 |
-| `<harmony arrangement>` | [harmony](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/harmony/)，[Issue 307](https://github.com/w3c-cg/musicxml/issues/307) | `test/data/test_mxl4_numeral.musicxml` | 忽略但不报错 | `arrangement="diagonal"`。画出的只有单行 “V”，没有斜线排列。 | WP-4 |
+| `<bass arrangement>` | [bass](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/bass/)，[Issue 307](https://github.com/w3c-cg/musicxml/issues/307) | `test/data/test_mxl4_numeral.musicxml`；断言在 `HarmonyNumeral_Test.ts` | 完整支持 | 测试值是 `horizontal`：低音 “on G” 跟在 “bV6” 同一行。`vertical` 把低音放到下一行，`diagonal` 放到下一行并以 “/ ” 开头。 | WP-4 |
+| `<harmony arrangement>` | [harmony](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/harmony/)，[Issue 307](https://github.com/w3c-cg/musicxml/issues/307) | `test/data/test_mxl4_numeral.musicxml`；断言在 `HarmonyNumeral_Test.ts` | 完整支持 | 测试值是 `diagonal`：第二级 “ii” 在下一行，行首是 “/ ”。单元测试另断言 `horizontal` 为 “V / ii”，`vertical` 为 “V”、横线、“ii” 三行。 | WP-4 |
 | `<repeat after-jump>` | [repeat](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/repeat/)，[Issue 322](https://github.com/w3c-cg/musicxml/issues/322) | `test/data/test_mxl4_repeat_after_jump.musicxml` | 忽略但不报错 | SVG 文本含 “D.C.”，来自反复文字。反复指令对象存在，但没有 `after-jump` 字段。反复括号本身是原有图形。[evidence](evidence/test_mxl4_repeat_after_jump.svg) | WP-6 |
 | `<figured-bass halign>` | [figured-bass](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/figured-bass/)，[Issue 362](https://github.com/w3c-cg/musicxml/issues/362) | `test/data/test_mxl4_figured_bass.musicxml` | 不支持 | 数字 “6” 不在 SVG 文本里，也没有数字低音图形。对齐属性没有可观察的效果。[evidence](evidence/test_mxl4_figured_bass.svg) | WP-6 |
 | `<figured-bass valign>` | 同上，[Issue 362](https://github.com/w3c-cg/musicxml/issues/362) | `test/data/test_mxl4_figured_bass.musicxml` | 不支持 | 与 `halign` 同一文件。没有数字可对齐。 | WP-6 |
@@ -109,7 +109,7 @@
 |---|---|---|---|---|---|
 | DTD 弃用，改用 XSD | [Issue 401](https://github.com/w3c-cg/musicxml/issues/401) | 无 | 不适用 | 与打包表中的同一条规范发行物。 | — |
 | 空的 `<multiple-rest>` 不再合法 | [multiple-rest](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/multiple-rest/)，[Issue 249](https://github.com/w3c-cg/musicxml/issues/249) | 合法文件 `test/data/test_mxl4_multiple_rest.musicxml`（内容 `2`）。空元素只在内存中探测 | 忽略但不报错 | 内容为 2 的文件画出 `vf-multirest`，其中有数字字形路径，加载无错误。[evidence](evidence/test_mxl4_multiple_rest.svg)。内存中的空元素：加载并渲染成功，一个休止，`SheetErrors` 为空，没有 `log.warn`。空文件不能通过 XSD，所以不放进仓库。WP-9 要求的警告目前没有。 | WP-9 |
-| `<function>` 弃用 | [function](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/function/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_function.musicxml` | 忽略但不报错 | 不崩溃。和弦列表为空，SVG 没有 “V”，也没有警告。弃用后的兼容显示和 WP-9 要求的 `log.warn` 都还没有。[evidence](evidence/test_mxl4_function.svg) | WP-4、WP-9 |
+| `<function>` 弃用 | [function](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/function/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_function.musicxml`；断言在 `HarmonyNumeral_Test.ts` | 完整支持 | 不崩溃。文字 “V” 加上 `kind` 的 `text` “7”，画出 “V7”。加载时 `log.warn`，提示改用 `<numeral>`。[evidence](evidence/test_mxl4_function.svg) | WP-4、WP-9 |
 | 谱号 `sign="none"` 弃用 | [clef-sign](https://www.w3.org/2021/06/musicxml40/musicxml-reference/data-types/clef-sign/)，[Issue 304](https://github.com/w3c-cg/musicxml/issues/304) | `test/data/test_mxl4_clef_sign_none.musicxml` | 部分支持 | 不抛错。小节 1 的 `SheetErrors` 为 `Unsupported clef. Using default.` 谱号路径与高音谱号同类，音符仍画出。这不是静默忽略，也还不是 WP-9 要求的 `log.warn`。[evidence](evidence/test_mxl4_clef_sign_none.svg) | WP-9 |
 
 ## 4.1 草案
@@ -139,11 +139,11 @@
 
 | 判定 | 行数 | 说明 |
 |---|---|---|
-| 完整支持 | 4 | `<metronome print-object>` 的印刷结果、多个 rootfile 时选中第一份 MusicXML，以及踏板 `discontinue` / `resume` |
-| 部分支持 | 10 | 罗马数字及其根音、多乐器、波浪线、琶音、谱号 none、多声部符号、多个变音记号，以及两行 `<part-link>` |
+| 完整支持 | 14 | `<metronome print-object>`、多个 rootfile 时选中第一份 MusicXML、踏板 `discontinue` / `resume`，以及级数和弦的十行（含弃用的 `<function>`） |
+| 部分支持 | 8 | 多乐器、波浪线、琶音、谱号 none、多声部符号、多个变音记号，以及两行 `<part-link>` |
 | 不支持 | 4 | 数字低音的三个对齐属性，以及 number 16 的连线 |
-| 忽略但不报错 | 56 | 文件能加载，新数据没有进入模型或画面，也没有控制台错误 |
+| 忽略但不报错 | 48 | 文件能加载，新数据没有进入模型或画面，也没有控制台错误 |
 | 报错 | 2 | `ending system` 的内部 TypeError、`score-timewise` 被拒绝 |
 | 不适用 | 3 | XML catalog，以及 DTD 换 XSD（打包和弃用各一行，是同一件事） |
 
-WP-1 已在 `feat/mxl4-packaging` 实现，WP-3 已在 `feat/mxl4-pedal` 实现，两者都合并进 `release`。WP-2 与 WP-8 仍要先完成计划里的 H5（向上游开 issue 或 discussion）。把 `release` 设为 GitHub 默认分支仍要仓库所有者在设置里操作。
+WP-1 已在 `feat/mxl4-packaging` 实现，WP-3 已在 `feat/mxl4-pedal` 实现，WP-4 已在 `feat/mxl4-numeral` 实现，三者都合并进 `release`。WP-2 与 WP-8 仍要先完成计划里的 H5（向上游开 issue 或 discussion）。把 `release` 设为 GitHub 默认分支仍要仓库所有者在设置里操作。

@@ -2,6 +2,7 @@
 
 export * from "./Exceptions";
 export * from "./Instrument";
+export * from "./PartLink";
 export * from "./InstrumentalGroup";
 export * from "./Label";
 export * from "./MusicSheet";

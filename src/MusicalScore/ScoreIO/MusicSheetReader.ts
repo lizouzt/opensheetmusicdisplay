@@ -27,6 +27,7 @@ import {RepetitionCalculator} from "./MusicSymbolModules/RepetitionCalculator";
 import {EngravingRules} from "../Graphical/EngravingRules";
 import { ReaderPluginManager } from "./ReaderPluginManager";
 import { TextAlignmentEnum } from "../../Common/Enums/TextAlignment";
+import { PartLink } from "../PartLink";
 
 export class MusicSheetReader /*implements IMusicSheetReader*/ {
 
@@ -1215,7 +1216,12 @@ export class MusicSheetReader /*implements IMusicSheetReader*/ {
                     for (let idx2: number = 0, len2: number = partElements.length; idx2 < len2; ++idx2) {
                         const partElement: IXmlElement = partElements[idx2];
                         try {
-                            if (partElement.name === "part-name") {
+                            if (partElement.name === "part-link") {
+                                const link: PartLink = PartLink.fromXml(partElement);
+                                if (link.href) {
+                                    instrument.PartLinks.push(link);
+                                }
+                            } else if (partElement.name === "part-name") {
                                 instrument.Name = partElement.value;
                                 if (partElement.attribute("print-object") &&
                                    partElement.attribute("print-object").value === "no") {

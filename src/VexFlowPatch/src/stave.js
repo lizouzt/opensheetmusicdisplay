@@ -641,12 +641,22 @@ export class Stave extends Element {
     for (let line = 0; line < num_lines; line++) {
       y = this.getYForLine(line);
 
+      const lineConfig = this.options.line_config[line];
       this.applyStyle();
-      if (this.options.line_config[line].visible) {
+      if (lineConfig.visible) {
+        // line_config may set a MusicXML line-detail color or width for this line only
+        this.context.save();
+        if (lineConfig.strokeStyle) {
+          this.context.setStrokeStyle(lineConfig.strokeStyle);
+        }
+        if (lineConfig.lineWidth) {
+          this.context.setLineWidth(lineConfig.lineWidth);
+        }
         this.context.beginPath();
         this.context.moveTo(x, y);
         this.context.lineTo(x + width, y);
         this.context.stroke();
+        this.context.restore();
       }
       this.restoreStyle();
     }

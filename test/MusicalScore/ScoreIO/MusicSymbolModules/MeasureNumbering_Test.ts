@@ -140,4 +140,15 @@ describe("Measure numbering", () => {
         expect(both).to.have.length(2);
         expect(Math.max(...both)).to.be.greaterThan(Math.min(...both) + 2);
     });
+
+    it("keeps the multiple-rest number when the rest does not start the system", async () => {
+        const measures: string = `<measure number="1">NUMBERING${attributes}${note}</measure>
+            <measure number="2"><attributes><measure-style><multiple-rest>2</multiple-rest></measure-style></attributes>
+            <note><rest/><duration>4</duration><type>whole</type></note></measure>
+            <measure number="3"><note><rest/><duration>4</duration><type>whole</type></note></measure>`;
+        const always: string = "<print><measure-numbering multiple-rest-always=\"yes\" multiple-rest-range=\"yes\">system</measure-numbering></print>";
+        const notAlways: string = "<print><measure-numbering multiple-rest-always=\"no\" multiple-rest-range=\"yes\">system</measure-numbering></print>";
+        expect(await labels(score(always, measures))).to.deep.equal(["2-3"]);
+        expect(await labels(score(notAlways, measures))).to.deep.equal([]);
+    });
 });

@@ -26,6 +26,7 @@ import {SlurReader} from "./MusicSymbolModules/SlurReader";
 import {StemDirectionType, VoiceEntry} from "../VoiceData/VoiceEntry";
 import {NoteType, NoteTypeHandler} from "../VoiceData/NoteType";
 import { SystemLinesEnumHelper } from "../Graphical/SystemLinesEnum";
+import { EngravingRules } from "../Graphical/EngravingRules";
 import { ReaderPluginManager } from "./ReaderPluginManager";
 import { TremoloInfo } from "../VoiceData/Note";
 // import {Dictionary} from "typescript-collections";
@@ -191,6 +192,7 @@ export class InstrumentReader {
           if (newPageAttr?.value === "yes") {
             currentMeasure.printNewPageXml = true;
           }
+          this.readMeasureNumbering(xmlNode);
         } else if (xmlNode.name === "attributes") {
           const divisionsNode: IXmlElement = xmlNode.element("divisions");
           if (divisionsNode) {
@@ -1523,10 +1525,55 @@ export class InstrumentReader {
          directionStaffNumber = 1;
          log.debug("InstrumentReader.readExpressionStaffNumber", errorMsg, ex);
        }
-
      }
    }
    return directionStaffNumber;
+  }
+
+  /**
+   * none, measure, or system, plus the 4.0 staff and multiple-rest attributes.
+   * The first part that asks for numbers wins. A later part's none does not remove them.
+   */
+  private readMeasureNumbering(printNode: IXmlElement): void {
+    const numbering: IXmlElement = printNode.element("measure-numbering");
+    if (!numbering) {
+      return;
+    }
+    const rules: EngravingRules = this.musicSheet.Rules;
+    if (rules.MeasureNumberingFromXml && rules.MeasureNumberingInstrumentId !== this.instrument.Id) {
+      return;
+    }
+    rules.MeasureNumberingFromXml = true;
+    rules.MeasureNumberingInstrumentId = this.instrument.Id;
+    const value: string = (numbering.value ?? "").trim();
+    if (value === "none") {
+      rules.RenderMeasureNumbers = false;
+    } else if (value === "measure") {
+      rules.RenderMeasureNumbers = true;
+      rules.RenderMeasureNumbersOnlyAtSystemStart = false;
+    } else if (value === "system") {
+      rules.RenderMeasureNumbers = true;
+      rules.RenderMeasureNumbersOnlyAtSystemStart = true;
+    }
+    const staffValue: string = numbering.attribute("staff")?.value;
+    if (staffValue) {
+      const staffNumber: number = parseInt(staffValue, 10);
+      if (!isNaN(staffNumber)) {
+        rules.MeasureNumberReferenceStaff = staffNumber;
+      }
+    }
+    const relation: string = numbering.attribute("system")?.value;
+    if (relation) {
+      rules.MeasureNumberSystemRelation = relation;
+    }
+    const always: string = numbering.attribute("multiple-rest-always")?.value;
+    if (always === "yes" || always === "no") {
+      rules.MeasureNumberMultipleRestAlways = always === "yes";
+    }
+    const range: string = numbering.attribute("multiple-rest-range")?.value;
+    if (range === "yes" || range === "no") {
+      rules.MeasureNumberMultipleRestRange = range === "yes";
+    }
   }
 
   /**

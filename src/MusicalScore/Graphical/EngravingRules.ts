@@ -580,6 +580,18 @@ export class EngravingRules {
     public RenderFingerings: boolean;
     public RenderMeasureNumbers: boolean;
     public RenderMeasureNumbersOnlyAtSystemStart: boolean;
+    /** Set when a part's measure-numbering element was read. A later part's "none" does not clear it. */
+    public MeasureNumberingFromXml: boolean;
+    /** Instrument that supplied the measure-numbering element currently in force. */
+    public MeasureNumberingInstrumentId: number;
+    /** 1-based staff within that part used as the vertical reference. Unset keeps the top staff. */
+    public MeasureNumberReferenceStaff: number;
+    /** system attribute: only-top, only-bottom, also-top, also-bottom, or none. */
+    public MeasureNumberSystemRelation: string;
+    /** Show a number on a multiple rest even when it does not start the system. */
+    public MeasureNumberMultipleRestAlways: boolean;
+    /** Multiple rests show first-last, for example 1-2, instead of only the first number. */
+    public MeasureNumberMultipleRestRange: boolean;
     /** Whether to render measure numbers for measures marked implicit (e.g. implicit="yes" in the MusicXML, like
      * pickup measures or measures without a meter as in Satie's Gnossiennes). Default false: implicit measures
      * don't show a measure number, as per the MusicXML standard. */
@@ -1111,6 +1123,12 @@ export class EngravingRules {
         this.RenderFingerings = true;
         this.RenderMeasureNumbers = true;
         this.RenderMeasureNumbersOnlyAtSystemStart = false;
+        this.MeasureNumberingFromXml = false;
+        this.MeasureNumberingInstrumentId = undefined;
+        this.MeasureNumberReferenceStaff = undefined;
+        this.MeasureNumberSystemRelation = undefined;
+        this.MeasureNumberMultipleRestAlways = false;
+        this.MeasureNumberMultipleRestRange = false;
         this.RenderMeasureNumbersForImplicitMeasures = false;
         this.UseXMLMeasureNumbers = true;
         this.RenderLyrics = true;

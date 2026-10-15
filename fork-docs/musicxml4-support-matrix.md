@@ -1,6 +1,6 @@
 # MusicXML 4.0 / 4.1 支持矩阵
 
-阶段 2 的运行时结论。WP-1、WP-3 与 WP-4 已按实现后的结果改过。除这三处外，引擎是 OSMD `2.2.1-dev` 提交 `a308225e`。打包三行在 `eea91c1f`（WP-1）上用单元测试重测。踏板两行在 `ac248c9d`（WP-3）上用单元测试和 SVG 重测。级数和弦在 `d299b30b`（WP-4）上用单元测试和 SVG 重测。
+阶段 2 的运行时结论。WP-1、WP-3、WP-4 与 WP-5 已按实现后的结果改过。除这四处外，引擎是 OSMD `2.2.1-dev` 提交 `a308225e`。打包三行在 `eea91c1f`（WP-1）上用单元测试重测。踏板两行在 `ac248c9d`（WP-3）上用单元测试和 SVG 重测。级数和弦在 `d299b30b`（WP-4）上用单元测试和 SVG 重测。小节号四行在 `609bb261`（WP-5）上用单元测试和 SVG 重测。
 
 ## 怎么测的
 
@@ -8,7 +8,7 @@
 - 测试文件由本项目编写，放在 `test/data/test_mxl4_*`。`version` 为 `4.0` 或 `4.1`，预期渲染写在 `<identification><miscellaneous>`。2026-10-15 用 `xmllint --nonet --schema` 校验：全部 `test_mxl4_*.musicxml` 通过 `musicxml.xsd`；`test_mxl4_packaging.mxl` 里的 `META-INF/container.xml` 通过 `container.xsd`，其中的 `score.musicxml` 与 `P1.musicxml` 通过 `musicxml.xsd`。`mimetype` 是压缩包的第一个条目，存储方式为不压缩，内容为 `application/vnd.recordare.musicxml`。
 - 运行方式：用构建产物 `build/opensheetmusicdisplay.min.js`，在 jsdom 里以 SVG 后端加载并渲染。记录控制台 error/warn、`SheetErrors`、声部移调、和弦文本、踏板与波浪线等表达式、音符上的变音记号、演奏乐器、琶音类型、连线和符干方向。渲染图在 `fork-docs/evidence/`。
 - 空的 `<multiple-rest>` 不能通过 XSD，仓库里只保留内容为 `2` 的合法文件。空元素只在内存中探测，不提交。
-- 判定只用这五档：完整支持、部分支持、不支持、忽略但不报错、报错。完整支持目前包括 `<metronome print-object>` 的印刷行为、多个 rootfile 时选中第一份 MusicXML、踏板 `discontinue` / `resume`，以及级数和弦的排列、低音分隔和弃用的 `<function>`。明细见文末汇总。
+- 判定只用这五档：完整支持、部分支持、不支持、忽略但不报错、报错。完整支持目前包括 `<metronome print-object>` 的印刷行为、多个 rootfile 时选中第一份 MusicXML、踏板 `discontinue` / `resume`、级数和弦的排列、低音分隔和弃用的 `<function>`，以及 `<measure-numbering>` 的四种属性。明细见文末汇总。
 
 版权：这些文件是本项目自写的最小乐谱，按 `SAMPLE_COPYRIGHT_AUDIT.md` 为 A 级。没有复制受版权保护的乐谱。
 
@@ -69,10 +69,10 @@
 | `<figured-bass halign>` | [figured-bass](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/figured-bass/)，[Issue 362](https://github.com/w3c-cg/musicxml/issues/362) | `test/data/test_mxl4_figured_bass.musicxml` | 不支持 | 数字 “6” 不在 SVG 文本里，也没有数字低音图形。对齐属性没有可观察的效果。[evidence](evidence/test_mxl4_figured_bass.svg) | WP-6 |
 | `<figured-bass valign>` | 同上，[Issue 362](https://github.com/w3c-cg/musicxml/issues/362) | `test/data/test_mxl4_figured_bass.musicxml` | 不支持 | 与 `halign` 同一文件。没有数字可对齐。 | WP-6 |
 | `<figured-bass placement>` | 同上，[Issue 336](https://github.com/w3c-cg/musicxml/issues/336) | `test/data/test_mxl4_figured_bass.musicxml` | 不支持 | `placement="below"` 没有产生谱表下方的数字。 | WP-6 |
-| `<measure-numbering multiple-rest-always>` | [measure-numbering](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/measure-numbering/)，[Issue 310](https://github.com/w3c-cg/musicxml/issues/310) | `test/data/test_mxl4_measure_numbering.musicxml` | 忽略但不报错 | 多小节休止画出来了（`vf-multirest`），但没有一直显示在休止上的编号范围。SVG 文本只有一个 “3”，那是被保留的演奏小节上的原有小节号。[evidence](evidence/test_mxl4_measure_numbering.svg) | WP-5 |
-| `<measure-numbering multiple-rest-range>` | 同上，[Issue 310](https://github.com/w3c-cg/musicxml/issues/310) | `test/data/test_mxl4_measure_numbering.musicxml` | 忽略但不报错 | 没有 “1-2” 这样的范围文本。 | WP-5 |
-| `<measure-numbering staff>` | 同上，[Issue 23](https://github.com/w3c-cg/musicxml/issues/23) | `test/data/test_mxl4_measure_numbering.musicxml` | 忽略但不报错 | 单谱表，无法从画面上单独证明 `staff="1"` 被读取。源码不读 `measure-numbering`，模型里也没有该元素。 | WP-5 |
-| `<measure-numbering system>` | 同上，[Issue 37](https://github.com/w3c-cg/musicxml/issues/37) | `test/data/test_mxl4_measure_numbering.musicxml` | 忽略但不报错 | 值是 `system`。画面不是“每个系统只在顶端标一次”的专门格式，只有原有的 “3”。 | WP-5 |
+| `<measure-numbering multiple-rest-always>` | [measure-numbering](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/measure-numbering/)，[Issue 310](https://github.com/w3c-cg/musicxml/issues/310) | `test/data/test_mxl4_measure_numbering.musicxml`；断言在 `MeasureNumbering_Test.ts` | 完整支持 | 值为 `system` 时，不在系统开头的多小节休止仍标出范围。单元测试断言为 “2-3”；`multiple-rest-always="no"` 时该休止不标号。测试谱的休止从第 1 小节开始，SVG 文本是 “1-2”。[evidence](evidence/test_mxl4_measure_numbering.svg) | WP-5 |
+| `<measure-numbering multiple-rest-range>` | 同上，[Issue 310](https://github.com/w3c-cg/musicxml/issues/310) | `test/data/test_mxl4_measure_numbering.musicxml`；断言在 `MeasureNumbering_Test.ts` | 完整支持 | 测试谱画出 “1-2”。不在系统开头的休止，单元测试断言为 “2-3”。都不是只标第一小节。 | WP-5 |
+| `<measure-numbering staff>` | 同上，[Issue 23](https://github.com/w3c-cg/musicxml/issues/23) | `test/data/test_mxl4_measure_numbering.musicxml`；断言在 `MeasureNumbering_Test.ts` | 完整支持 | `staff="1"` 记在规则里。双谱表上 `system="none" staff="2"` 的编号低于 `only-top`。测试谱是单谱表，编号在最上谱表，y=163.8。 | WP-5 |
+| `<measure-numbering system>` | 同上，[Issue 37](https://github.com/w3c-cg/musicxml/issues/37) | `test/data/test_mxl4_measure_numbering.musicxml`；断言在 `MeasureNumbering_Test.ts` | 完整支持 | 值 `none` 不画号，`measure` 按间隔画，`system` 每个系统只在开头标一次。测试谱 SVG 只有 “1-2”，没有中段的 “3”。属性 `only-top` 在最上谱表，`only-bottom` 在最下谱表，`also-top` 两处都标，`none` 跟 `staff`。先读到该元素的声部生效，后面声部的 `none` 不会把它关掉。 | WP-5 |
 | `<release offset>` | [release](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/release/)，[Issue 203](https://github.com/w3c-cg/musicxml/issues/203) | `test/data/test_mxl4_bend_release.musicxml` | 忽略但不报错 | 与没有推弦的四音小节相比，没有多出来的推弦或回位曲线。`offset="0.5"` 没有图形。[evidence](evidence/test_mxl4_bend_release.svg) | WP-6 |
 | `<metronome print-object>` | [metronome](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/metronome/)，[Issue 355](https://github.com/w3c-cg/musicxml/issues/355) | `test/data/test_mxl4_metronome_print_object.musicxml` | 完整支持 | SVG 文本只有 “ = 72”。`print-object="no"` 的 96 没有印出来，随后 `print-object="yes"` 的 72 印出来了。没有检查隐藏速度是否仍作为播放速度保存。[evidence](evidence/test_mxl4_metronome_print_object.svg) | WP-6 |
 | `<staff-size scaling>` | [staff-size](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/staff-size/)，[Issue 305](https://github.com/w3c-cg/musicxml/issues/305) | `test/data/test_mxl4_line_detail.musicxml` | 忽略但不报错 | `scaling="80"`。谱表线间距仍是 10（y = 163.5 到 203.5），与未缩放的测试文件相同。 | WP-6 |
@@ -139,11 +139,11 @@
 
 | 判定 | 行数 | 说明 |
 |---|---|---|
-| 完整支持 | 14 | `<metronome print-object>`、多个 rootfile 时选中第一份 MusicXML、踏板 `discontinue` / `resume`，以及级数和弦的十行（含弃用的 `<function>`） |
+| 完整支持 | 18 | `<metronome print-object>`、多个 rootfile 时选中第一份 MusicXML、踏板 `discontinue` / `resume`、级数和弦的十行（含弃用的 `<function>`），以及 `<measure-numbering>` 的四行 |
 | 部分支持 | 8 | 多乐器、波浪线、琶音、谱号 none、多声部符号、多个变音记号，以及两行 `<part-link>` |
 | 不支持 | 4 | 数字低音的三个对齐属性，以及 number 16 的连线 |
-| 忽略但不报错 | 48 | 文件能加载，新数据没有进入模型或画面，也没有控制台错误 |
+| 忽略但不报错 | 44 | 文件能加载，新数据没有进入模型或画面，也没有控制台错误 |
 | 报错 | 2 | `ending system` 的内部 TypeError、`score-timewise` 被拒绝 |
 | 不适用 | 3 | XML catalog，以及 DTD 换 XSD（打包和弃用各一行，是同一件事） |
 
-WP-1 已在 `feat/mxl4-packaging` 实现，WP-3 已在 `feat/mxl4-pedal` 实现，WP-4 已在 `feat/mxl4-numeral` 实现，三者都合并进 `release`。WP-2 与 WP-8 仍要先完成计划里的 H5（向上游开 issue 或 discussion）。把 `release` 设为 GitHub 默认分支仍要仓库所有者在设置里操作。
+WP-1 已在 `feat/mxl4-packaging` 实现，WP-3 已在 `feat/mxl4-pedal` 实现，WP-4 已在 `feat/mxl4-numeral` 实现，WP-5 已在 `feat/mxl4-measure-numbering` 实现，四者都合并进 `release`。WP-2 与 WP-8 仍要先完成计划里的 H5（向上游开 issue 或 discussion）。GitHub 默认分支已经是 `release`。

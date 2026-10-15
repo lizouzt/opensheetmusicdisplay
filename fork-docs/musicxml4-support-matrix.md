@@ -1,6 +1,6 @@
 # MusicXML 4.0 / 4.1 支持矩阵
 
-阶段 2 的运行时结论。引擎是 OSMD `2.2.1-dev`，提交 `a308225e74e8c760142ef9bfe8d3abe090ee1860`（与 `upstream/develop` 相同）。本文件只记录现状，不实现工作包。
+阶段 2 的运行时结论，WP-1 已按实现后的结果改过。除打包三行外，引擎是 OSMD `2.2.1-dev` 提交 `a308225e`。打包三行在 `eea91c1f`（WP-1）上用单元测试重测。
 
 ## 怎么测的
 
@@ -8,7 +8,7 @@
 - 测试文件由本项目编写，放在 `test/data/test_mxl4_*`。`version` 为 `4.0` 或 `4.1`，预期渲染写在 `<identification><miscellaneous>`。2026-10-15 用 `xmllint --nonet --schema` 校验：全部 `test_mxl4_*.musicxml` 通过 `musicxml.xsd`；`test_mxl4_packaging.mxl` 里的 `META-INF/container.xml` 通过 `container.xsd`，其中的 `score.musicxml` 与 `P1.musicxml` 通过 `musicxml.xsd`。`mimetype` 是压缩包的第一个条目，存储方式为不压缩，内容为 `application/vnd.recordare.musicxml`。
 - 运行方式：用构建产物 `build/opensheetmusicdisplay.min.js`，在 jsdom 里以 SVG 后端加载并渲染。记录控制台 error/warn、`SheetErrors`、声部移调、和弦文本、踏板与波浪线等表达式、音符上的变音记号、演奏乐器、琶音类型、连线和符干方向。渲染图在 `fork-docs/evidence/`。
 - 空的 `<multiple-rest>` 不能通过 XSD，仓库里只保留内容为 `2` 的合法文件。空元素只在内存中探测，不提交。
-- 判定只用这五档：完整支持、部分支持、不支持、忽略但不报错、报错。没有一项 4.0/4.1 新增语义被完整实现；唯一的完整支持是 `<metronome print-object>` 的印刷行为。
+- 判定只用这五档：完整支持、部分支持、不支持、忽略但不报错、报错。完整支持目前是 `<metronome print-object>` 的印刷行为，以及多个 rootfile 时选中第一份 MusicXML。
 
 版权：这些文件是本项目自写的最小乐谱，按 `SAMPLE_COPYRIGHT_AUDIT.md` 为 A 级。没有复制受版权保护的乐谱。
 
@@ -18,9 +18,9 @@
 
 | 条目 | 规范 | 测试文件 | 判定 | 证据 | 工作包 |
 |---|---|---|---|---|---|
-| `mimetype` 条目 | [40.md Packaging](https://www.w3.org/2021/06/musicxml40/version-history/40/) | `test/data/test_mxl4_packaging.mxl` | 忽略但不报错 | 解压能读到 `mimetype`，没有因为该文件解压失败。OSMD 不校验它的内容。加载失败的原因见下一行。 | WP-1 |
-| 多个 `rootfile` 时选择第一个 MusicXML 媒体类型 | [container.xsd](https://www.w3.org/2021/06/musicxml40/listings/container.xsd/)，[Issue 278](https://github.com/w3c-cg/musicxml/issues/278) | `test/data/test_mxl4_packaging.mxl` | 报错 | `container.xml` 的第一个 `rootfile` 是 `cover.pdf`（`application/pdf`），第二个才是 `score.musicxml`。OSMD 固定使用第一个 `rootfile`，把 PDF 当乐谱解析。控制台没有单独的媒体类型错误；`load` 抛出 `The string did not match the expected pattern.`。没有 SVG。旧的、第一个 rootfile 就是乐谱的 `.mxl` 仍由阶段 0 的单元测试覆盖。 | WP-1 |
-| `<part-link>` | [part-link](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/part-link/)，[Issue 278](https://github.com/w3c-cg/musicxml/issues/278) | `test/data/test_mxl4_part_link.musicxml`（`xlink:href="P1.musicxml"`；目标文件在上面的 `.mxl` 内） | 忽略但不报错 | 未压缩文件加载成功，标题 “MXL4 Main Score”，谱面画出单簧管与 C 大调音符。[evidence](evidence/test_mxl4_part_link.svg)。链接没有被读取，分谱没有加载。 | WP-1 |
+| `mimetype` 条目 | [40.md Packaging](https://www.w3.org/2021/06/musicxml40/version-history/40/) | `test/data/test_mxl4_packaging.mxl`；单元测试在 `Mxl_Test.ts` 里用同样的未压缩 `mimetype` 打包 | 忽略但不报错 | 有 `mimetype` 时解压并读到主乐谱。OSMD 不校验该文件的内容，缺了它的旧 `.mxl` 也能读。 | WP-1 |
+| 多个 `rootfile` 时选择第一个 MusicXML 媒体类型 | [container.xsd](https://www.w3.org/2021/06/musicxml40/listings/container.xsd/)，[Issue 278](https://github.com/w3c-cg/musicxml/issues/278) | `test/data/test_mxl4_packaging.mxl`；断言在 `Mxl_Test.ts` | 完整支持 | 第一个 rootfile 是 `cover.pdf`，第二个是 `score.musicxml`（`application/vnd.recordare.musicxml+xml`），第三个是分谱。读出的 XML 含 “MXL4 Main Score”，不含 “MXL4 Part Only”，也不含 `%PDF`。没有 media-type 的第一个 rootfile 仍被当成主乐谱。旧的 Mozart `.mxl` 和 UTF-16 `.mxl` 测试通过。 | WP-1 |
+| `<part-link>` | [part-link](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/part-link/)，[Issue 278](https://github.com/w3c-cg/musicxml/issues/278) | `test/data/test_mxl4_part_link.musicxml`（`xlink:href="P1.musicxml"`；目标文件在上面的 `.mxl` 内） | 部分支持 | `Instrument.PartLinks[0]` 为 href `P1.musicxml`、instrument id `P1-I1`、group `parts`。`MXLHelper.readEntry` 从同一个 zip 读出标题 “MXL4 Part Only”。`load` 不会改去渲染分谱，调用方需要自己留着 zip。未压缩文件的画面仍是主乐谱，见 [evidence](evidence/test_mxl4_part_link.svg)。 | WP-1 |
 | XML catalog | [Issue 259](https://github.com/w3c-cg/musicxml/issues/259) | 无。这是规范自带的 catalog，不是乐谱语义 | 不适用 | OSMD 不做 XSD 校验，不读取 catalog。 | — |
 | container / sounds 的 DTD 改为 XSD；midixml DTD 弃用且不再提供 XSD | [Issue 401](https://github.com/w3c-cg/musicxml/issues/401) | 无。发行物，不是乐谱语义 | 不适用 | OSMD 不消费这些 DTD/XSD。与下面“已删除和弃用”中的同一条是同一件事。 | — |
 
@@ -47,7 +47,7 @@
 | `<other-listen>` | [other-listen](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/other-listen/)，[Issue 294](https://github.com/w3c-cg/musicxml/issues/294) | `test/data/test_mxl4_listen.musicxml` | 忽略但不报错 | `type="cue"`、文本 “breath” 不在模型或 SVG 中。 | WP-8 |
 | `<other-listening>` | [other-listening](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/other-listening/)，[Issue 294](https://github.com/w3c-cg/musicxml/issues/294) | `test/data/test_mxl4_listening.musicxml` | 忽略但不报错 | `type="section"`、文本 “verse” 不在模型或 SVG 中。 | WP-8 |
 | `<part-clef>` | [part-clef](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/part-clef/)，[Issue 55](https://github.com/w3c-cg/musicxml/issues/55) | `test/data/test_mxl4_concert_score.musicxml` | 忽略但不报错 | 文件要求分谱低音谱号（F4）。画出的谱号路径与高音谱号单簧管文件一致，不是低音谱号。 | WP-2 |
-| `<part-link>` | 见打包表 | `test/data/test_mxl4_part_link.musicxml` | 忽略但不报错 | 见打包表。元素定义在 Schema Additions，行为与打包是同一条。 | WP-1 |
+| `<part-link>` | 见打包表 | `test/data/test_mxl4_part_link.musicxml` | 部分支持 | 见打包表。元素定义在 Schema Additions，行为与打包是同一条。 | WP-1 |
 | `<part-transpose>` | [part-transpose](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/part-transpose/)，[Issue 279](https://github.com/w3c-cg/musicxml/issues/279) | `test/data/test_mxl4_concert_score.musicxml` | 忽略但不报错 | `chromatic` 为 `-2`。乐器 `transpose` 仍是 0，`PlaybackTranspose` 没有变成 -2。写在谱上的 C 仍按 C 画。 | WP-2 |
 | `<player>` | [player](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/player/)，[Issue 294](https://github.com/w3c-cg/musicxml/issues/294) | `test/data/test_mxl4_listen.musicxml` | 忽略但不报错 | `id="PL1"` 没有挂到乐器上。乐器只有 `P1-I1`。 | WP-8 |
 | `<second>` | [second](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/second/)，[Issue 283](https://github.com/w3c-cg/musicxml/issues/283) | `test/data/test_mxl4_swing.musicxml` | 忽略但不报错 | 与 `<first>` 相同：没有摇摆比例字段。 | WP-8 |
@@ -139,11 +139,11 @@
 
 | 判定 | 行数 | 说明 |
 |---|---|---|
-| 完整支持 | 1 | 只有 `<metronome print-object>` 的印刷结果与文件一致 |
-| 部分支持 | 10 | 罗马数字及其根音、多乐器、波浪线、琶音、踏板 discontinue/resume、谱号 none、多声部符号、多个变音记号 |
+| 完整支持 | 2 | `<metronome print-object>` 的印刷结果，以及多个 rootfile 时选中第一份 MusicXML |
+| 部分支持 | 12 | 罗马数字及其根音、多乐器、波浪线、琶音、踏板 discontinue/resume、谱号 none、多声部符号、多个变音记号，以及两行 `<part-link>` |
 | 不支持 | 4 | 数字低音的三个对齐属性，以及 number 16 的连线 |
-| 忽略但不报错 | 58 | 文件能加载，新数据没有进入模型或画面，也没有控制台错误 |
-| 报错 | 3 | 多个 rootfile 选错文件、`ending system` 的内部 TypeError、`score-timewise` 被拒绝 |
+| 忽略但不报错 | 56 | 文件能加载，新数据没有进入模型或画面，也没有控制台错误 |
+| 报错 | 2 | `ending system` 的内部 TypeError、`score-timewise` 被拒绝 |
 | 不适用 | 3 | XML catalog，以及 DTD 换 XSD（打包和弃用各一行，是同一件事） |
 
-阶段 3 还没有开始。WP-2 与 WP-8 的实现仍要先完成计划里的 H5（向上游开 issue 或 discussion）。把 `release` 设为 GitHub 默认分支仍要仓库所有者在设置里操作。
+WP-1 已在 `feat/mxl4-packaging` 实现，并合并进 `release`。WP-2 与 WP-8 仍要先完成计划里的 H5（向上游开 issue 或 discussion）。把 `release` 设为 GitHub 默认分支仍要仓库所有者在设置里操作。

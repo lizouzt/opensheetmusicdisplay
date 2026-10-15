@@ -1,6 +1,6 @@
 # MusicXML 4.0 / 4.1 支持矩阵
 
-阶段 2 的运行时结论，WP-1 已按实现后的结果改过。除打包三行外，引擎是 OSMD `2.2.1-dev` 提交 `a308225e`。打包三行在 `eea91c1f`（WP-1）上用单元测试重测。
+阶段 2 的运行时结论。WP-1 与 WP-3 已按实现后的结果改过。除这两处外，引擎是 OSMD `2.2.1-dev` 提交 `a308225e`。打包三行在 `eea91c1f`（WP-1）上用单元测试重测。踏板两行在 `ac248c9d`（WP-3）上用单元测试和 SVG 重测。
 
 ## 怎么测的
 
@@ -8,7 +8,7 @@
 - 测试文件由本项目编写，放在 `test/data/test_mxl4_*`。`version` 为 `4.0` 或 `4.1`，预期渲染写在 `<identification><miscellaneous>`。2026-10-15 用 `xmllint --nonet --schema` 校验：全部 `test_mxl4_*.musicxml` 通过 `musicxml.xsd`；`test_mxl4_packaging.mxl` 里的 `META-INF/container.xml` 通过 `container.xsd`，其中的 `score.musicxml` 与 `P1.musicxml` 通过 `musicxml.xsd`。`mimetype` 是压缩包的第一个条目，存储方式为不压缩，内容为 `application/vnd.recordare.musicxml`。
 - 运行方式：用构建产物 `build/opensheetmusicdisplay.min.js`，在 jsdom 里以 SVG 后端加载并渲染。记录控制台 error/warn、`SheetErrors`、声部移调、和弦文本、踏板与波浪线等表达式、音符上的变音记号、演奏乐器、琶音类型、连线和符干方向。渲染图在 `fork-docs/evidence/`。
 - 空的 `<multiple-rest>` 不能通过 XSD，仓库里只保留内容为 `2` 的合法文件。空元素只在内存中探测，不提交。
-- 判定只用这五档：完整支持、部分支持、不支持、忽略但不报错、报错。完整支持目前是 `<metronome print-object>` 的印刷行为，以及多个 rootfile 时选中第一份 MusicXML。
+- 判定只用这五档：完整支持、部分支持、不支持、忽略但不报错、报错。完整支持目前是 `<metronome print-object>` 的印刷行为、多个 rootfile 时选中第一份 MusicXML，以及踏板 `discontinue` / `resume` 的线段。
 
 版权：这些文件是本项目自写的最小乐谱，按 `SAMPLE_COPYRIGHT_AUDIT.md` 为 A 级。没有复制受版权保护的乐谱。
 
@@ -100,8 +100,8 @@
 | 八个新的 `<instrument-sound>` id | [Issue 289](https://github.com/w3c-cg/musicxml/issues/289)、[Issue 363](https://github.com/w3c-cg/musicxml/issues/363) | `test/data/test_mxl4_instrument_sounds.musicxml` | 忽略但不报错 | 八个 `<instrument-name>` 都在（Tin whistle、Tabor、Tamborim、Handchimes、Cavaquinho、D clarinet、G clarinet、Piccolo clarinet）。MIDI 是按名字猜测的：单簧管类为 71，其余为 0。模型里没有这些 sound id 字符串。[evidence](evidence/test_mxl4_instrument_sounds.svg) | WP-8 |
 | `<ipa>` 使用 IPA 2015 / Unicode 13 | [ipa](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/ipa/)，[Issue 345](https://github.com/w3c-cg/musicxml/issues/345) | `test/data/test_mxl4_ipa.musicxml` | 忽略但不报错 | 歌词 “ah” 画出。IPA “əɓ” 不在 SVG 中。[evidence](evidence/test_mxl4_ipa.svg) | WP-8 |
 | `number-level` 上限从 6 提到 16 | [number-level](https://www.w3.org/2021/06/musicxml40/musicxml-reference/data-types/number-level/)，[Issue 297](https://github.com/w3c-cg/musicxml/issues/297) | `test/data/test_mxl4_number_level_16.musicxml` | 不支持 | 连线 `number="16"`。四个音的 `slurs` 长度都是 0，SVG 没有连线。文件没有因此崩溃。[evidence](evidence/test_mxl4_number_level_16.svg) | WP-6 |
-| 踏板 `type="discontinue"` | [pedal-type](https://www.w3.org/2021/06/musicxml40/musicxml-reference/data-types/pedal-type/)，[Issue 302](https://github.com/w3c-cg/musicxml/issues/302) | `test/data/test_mxl4_pedal_discontinue_resume.musicxml` | 部分支持 | 模型里只有一对 `PedalStart` / `PedalEnd`（`line` 为 true）。SVG 是一条从起点连到止点的踏板线（y=228.25），中间没有断开。`discontinue` 没有单独线段，也没有警告。[evidence](evidence/test_mxl4_pedal_discontinue_resume.svg) | WP-3 |
-| 踏板 `type="resume"` | 同上，[Issue 335](https://github.com/w3c-cg/musicxml/issues/335) | `test/data/test_mxl4_pedal_discontinue_resume.musicxml` | 部分支持 | 与上一行同一条连续踏板线。`resume` 没有重新起一条线。 | WP-3 |
+| 踏板 `type="discontinue"` | [pedal-type](https://www.w3.org/2021/06/musicxml40/musicxml-reference/data-types/pedal-type/)，[Issue 302](https://github.com/w3c-cg/musicxml/issues/302) | `test/data/test_mxl4_pedal_discontinue_resume.musicxml`；断言在 `PedalType_Test.ts` | 完整支持 | 两段踏板。第一段 `OpenEnd`，样式 `BRACKET_OPEN_END`：从 C4 的下钩连到 E4（x 约 203.7 到 257.8，y=228.25），E4 处没有抬起钩。[evidence](evidence/test_mxl4_pedal_discontinue_resume.svg) | WP-3 |
+| 踏板 `type="resume"` | 同上，[Issue 335](https://github.com/w3c-cg/musicxml/issues/335) | `test/data/test_mxl4_pedal_discontinue_resume.musicxml`；断言在 `PedalType_Test.ts` | 完整支持 | 第二段 `OpenBegin`，样式 `BRACKET_OPEN_BEGIN`：从 G4 起笔（x 约 288.0），没有下钩，连到 C5 后有抬起钩（x 约 324.1）。与第一段之间断开。跨系统时中间各段仍在系统边界断开，最后一段是否抬起由结束类型决定。`line` 不是 `yes` 时仍画 `Ped.` / `*`。既有样本 `test_clef_change_on_invisible_note_norma_fantasy_1605` 里的 `resume` 现在画出没有下钩的线，页面高度从 992 变为 1046，音符和谱号不变。 | WP-3 |
 
 ## 4.0 已删除和弃用
 
@@ -139,11 +139,11 @@
 
 | 判定 | 行数 | 说明 |
 |---|---|---|
-| 完整支持 | 2 | `<metronome print-object>` 的印刷结果，以及多个 rootfile 时选中第一份 MusicXML |
-| 部分支持 | 12 | 罗马数字及其根音、多乐器、波浪线、琶音、踏板 discontinue/resume、谱号 none、多声部符号、多个变音记号，以及两行 `<part-link>` |
+| 完整支持 | 4 | `<metronome print-object>` 的印刷结果、多个 rootfile 时选中第一份 MusicXML，以及踏板 `discontinue` / `resume` |
+| 部分支持 | 10 | 罗马数字及其根音、多乐器、波浪线、琶音、谱号 none、多声部符号、多个变音记号，以及两行 `<part-link>` |
 | 不支持 | 4 | 数字低音的三个对齐属性，以及 number 16 的连线 |
 | 忽略但不报错 | 56 | 文件能加载，新数据没有进入模型或画面，也没有控制台错误 |
 | 报错 | 2 | `ending system` 的内部 TypeError、`score-timewise` 被拒绝 |
 | 不适用 | 3 | XML catalog，以及 DTD 换 XSD（打包和弃用各一行，是同一件事） |
 
-WP-1 已在 `feat/mxl4-packaging` 实现，并合并进 `release`。WP-2 与 WP-8 仍要先完成计划里的 H5（向上游开 issue 或 discussion）。把 `release` 设为 GitHub 默认分支仍要仓库所有者在设置里操作。
+WP-1 已在 `feat/mxl4-packaging` 实现，WP-3 已在 `feat/mxl4-pedal` 实现，两者都合并进 `release`。WP-2 与 WP-8 仍要先完成计划里的 H5（向上游开 issue 或 discussion）。把 `release` 设为 GitHub 默认分支仍要仓库所有者在设置里操作。

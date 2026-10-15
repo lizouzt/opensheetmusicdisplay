@@ -317,7 +317,10 @@ export class RepetitionCalculator {
                           new RepetitionInstruction(this.lastRepetitionCommonPartStartIndex, RepetitionInstructionEnum.None);
                     }
                 }
-                if (currentRepetition.RepetitonUnderConstruction.forwardJumpInstruction === undefined) {
+                // The jump that skips this ending sits on the previous measure. An ending that
+                // starts the piece has no previous measure; attaching it there used to throw.
+                if (currentRepetition.RepetitonUnderConstruction.forwardJumpInstruction === undefined &&
+                    this.currentMeasureIndex > 0) {
                     currentRepetition.RepetitonUnderConstruction.forwardJumpInstruction =
                       new RepetitionInstruction(this.currentMeasureIndex - 1, RepetitionInstructionEnum.ForwardJump,
                                                 AlignmentType.End,

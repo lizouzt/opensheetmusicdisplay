@@ -73,6 +73,8 @@ export class RepetitionInstruction /*implements IComparable*/ {
     public Words: string;
     /** Whether the MusicXML marks this segno as the target of a D.S. (<sound segno="...">): it is never taken for a D.S. itself. */
     public MarkedAsTarget: boolean = false;
+    /** MusicXML 4.0 system attribute on an ending: only-top, only-bottom, also-top, also-bottom, or none. */
+    public SystemRelation: string;
 
     public CompareTo(obj: object): number {
         const other: RepetitionInstruction = <RepetitionInstruction>obj;

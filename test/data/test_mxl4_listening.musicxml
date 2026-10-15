@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>Listening state</work-title></work>
+  <identification>
+    <creator type="composer">Support matrix</creator>
+    <encoding>
+      <software>support-matrix</software>
+      <encoding-date>2026-10-15</encoding-date>
+    </encoding>
+    <miscellaneous>
+      <miscellaneous-field name="expected">From this point sync follows performer tempo with 40 ms latency. other-listening marks a verse. No extra notation.</miscellaneous-field>
+    </miscellaneous>
+  </identification>
+  
+  <part-list>
+    <score-part id="P1">
+      
+      <part-name>Melody</part-name>
+      <player id="PL1"><player-name>Soloist</player-name></player>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1"><attributes>
+      <divisions>1</divisions>
+      <key><fifths>0</fifths></key>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>G</sign><line>2</line></clef>
+    </attributes><direction>
+      <direction-type><words>follow</words></direction-type>
+      <listening>
+        <sync type="tempo" latency="40" player="PL1"/>
+        <other-listening type="section" player="PL1">verse</other-listening>
+      </listening>
+    </direction><note>
+      <pitch><step>C</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>D</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>E</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>F</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note></measure>
+  </part>
+</score-partwise>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>Medieval and Kievan accidentals</work-title></work>
+  <identification>
+    <creator type="composer">Support matrix</creator>
+    <encoding>
+      <software>support-matrix</software>
+      <encoding-date>2026-10-15</encoding-date>
+    </encoding>
+    <miscellaneous>
+      <miscellaneous-field name="expected">Key shows medRenSharp1 and kievanAccidentalFlat. The note shows medRenFlat1. The ornament mark shows medRenNatura1. The notehead text shows kievanAccidentalSharp.</miscellaneous-field>
+    </miscellaneous>
+  </identification>
+  
+  <part-list>
+    <score-part id="P1">
+      
+      <part-name>Melody</part-name>
+      
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1"><attributes>
+      <divisions>1</divisions>
+      <key>
+        <key-step>F</key-step><key-alter>1</key-alter><key-accidental smufl="medRenSharp1">sharp</key-accidental>
+        <key-step>B</key-step><key-alter>-1</key-alter><key-accidental smufl="kievanAccidentalFlat">flat</key-accidental>
+      </key>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>G</sign><line>2</line></clef>
+    </attributes><note>
+      <pitch><step>B</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      <type>quarter</type>
+      <accidental smufl="medRenFlat1">flat</accidental>
+      <notehead>normal</notehead>
+      <notehead-text><accidental-text smufl="kievanAccidentalSharp">sharp</accidental-text></notehead-text>
+      <notations><ornaments><trill-mark/><accidental-mark smufl="medRenNatura1">natural</accidental-mark></ornaments></notations>
+    </note><note>
+      <pitch><step>C</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>D</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>E</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note></measure>
+  </part>
+</score-partwise>

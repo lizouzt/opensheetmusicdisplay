@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>Octave doubling above</work-title></work>
+  <identification>
+    <creator type="composer">Support matrix</creator>
+    <encoding>
+      <software>support-matrix</software>
+      <encoding-date>2026-10-15</encoding-date>
+    </encoding>
+    <miscellaneous>
+      <miscellaneous-field name="expected">Written C4 sounds with a doubling one octave above. Staff still shows C4.</miscellaneous-field>
+    </miscellaneous>
+  </identification>
+  
+  <part-list>
+    <score-part id="P1">
+      
+      <part-name>Melody</part-name>
+      
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1"><attributes>
+      <divisions>1</divisions>
+      <key><fifths>0</fifths></key>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>G</sign><line>2</line></clef>
+      <transpose>
+        <chromatic>0</chromatic>
+        <double above="yes"/>
+      </transpose>
+    </attributes><note>
+      <pitch><step>C</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>E</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>G</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>C</step><octave>5</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note></measure>
+  </part>
+</score-partwise>

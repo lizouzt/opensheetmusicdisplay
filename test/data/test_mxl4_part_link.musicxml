@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <work><work-title>MXL4 Main Score</work-title></work>
+  <identification>
+    <creator type="composer">Support matrix</creator>
+    <encoding>
+      <software>support-matrix</software>
+      <encoding-date>2026-10-15</encoding-date>
+    </encoding>
+    <miscellaneous>
+      <miscellaneous-field name="expected">Score links the clarinet part to P1.musicxml inside the compressed file. This file itself shows C D E F in treble.</miscellaneous-field>
+    </miscellaneous>
+  </identification>
+  
+  <part-list>
+    <score-part id="P1">
+      <part-link xlink:href="P1.musicxml" xlink:type="simple">
+        <instrument-link id="P1-I1"/>
+        <group-link>parts</group-link>
+      </part-link>
+      <part-name>Clarinet</part-name>
+      <score-instrument id="P1-I1"><instrument-name>Clarinet</instrument-name></score-instrument>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1"><attributes>
+      <divisions>1</divisions>
+      <key><fifths>0</fifths></key>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>G</sign><line>2</line></clef>
+    </attributes><note>
+      <pitch><step>C</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>D</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>E</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>F</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note></measure>
+  </part>
+</score-partwise>

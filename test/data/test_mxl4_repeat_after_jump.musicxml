@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>Repeat after jump</work-title></work>
+  <identification>
+    <creator type="composer">Support matrix</creator>
+    <encoding>
+      <software>support-matrix</software>
+      <encoding-date>2026-10-15</encoding-date>
+    </encoding>
+    <miscellaneous>
+      <miscellaneous-field name="expected">Backward repeat is played again after a da capo jump.</miscellaneous-field>
+    </miscellaneous>
+  </identification>
+  
+  <part-list>
+    <score-part id="P1">
+      
+      <part-name>Melody</part-name>
+      
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1"><attributes>
+      <divisions>1</divisions>
+      <key><fifths>0</fifths></key>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>G</sign><line>2</line></clef>
+    </attributes><barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline><note>
+      <pitch><step>C</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>E</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>G</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>C</step><octave>5</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><barline location="right"><bar-style>light-heavy</bar-style><repeat direction="backward" times="2" after-jump="yes"/></barline></measure><measure number="2"><direction><direction-type><words>D.C.</words></direction-type></direction><note>
+      <pitch><step>G</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>E</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>C</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note><note>
+      <pitch><step>C</step><octave>4</octave></pitch>
+      <duration>1</duration>
+      
+      <type>quarter</type>
+    </note></measure>
+  </part>
+</score-partwise>

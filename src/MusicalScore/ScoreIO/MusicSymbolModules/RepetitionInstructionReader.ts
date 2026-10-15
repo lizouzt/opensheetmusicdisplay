@@ -36,6 +36,7 @@ export class RepetitionInstructionReader {
       let direction: string = "";
       let type: string = "";
       let style: string = "";
+      let endingSystem: string;
       const endingIndices: number[] = [];
 
       // read barline style
@@ -66,6 +67,10 @@ export class RepetitionInstructionReader {
             //   making this uneffective. Unclear whether the intention is to render the volta or not. (See #1367)
           }
           type = childNode.attribute("type").value;
+          const systemAttr: string = childNode.attribute("system")?.value;
+          if (systemAttr) {
+            endingSystem = systemAttr;
+          }
           let num: string = childNode.attribute("number").value;
           if (childNode.value) {
             num = childNode.value;
@@ -106,6 +111,7 @@ export class RepetitionInstructionReader {
           if (type === "start") {
             const newInstruction: RepetitionInstruction = new RepetitionInstruction(this.currentMeasureIndex, RepetitionInstructionEnum.Ending,
                                                                                     AlignmentType.Begin, undefined, endingIndices);
+            newInstruction.SystemRelation = endingSystem;
             this.addInstruction(this.repetitionInstructions, newInstruction);
           }
           if (direction === "forward") {
@@ -117,11 +123,13 @@ export class RepetitionInstructionReader {
           if (type === "stop") {
             const newInstruction: RepetitionInstruction = new RepetitionInstruction(this.currentMeasureIndex, RepetitionInstructionEnum.Ending,
                                                                                     AlignmentType.End, undefined, endingIndices);
+            newInstruction.SystemRelation = endingSystem;
             this.addInstruction(this.repetitionInstructions, newInstruction);
           } else if (type === "discontinue") {
             const newInstruction: RepetitionInstruction = new RepetitionInstruction(
               this.currentMeasureIndex, RepetitionInstructionEnum.Ending,
               AlignmentType.Discontinue, undefined, endingIndices);
+            newInstruction.SystemRelation = endingSystem;
             this.addInstruction(this.repetitionInstructions, newInstruction);
           }
           if (direction === "backward") {

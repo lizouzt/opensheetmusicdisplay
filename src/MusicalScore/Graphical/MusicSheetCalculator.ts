@@ -492,8 +492,12 @@ export abstract class MusicSheetCalculator {
         let previousMeasureNumber: number = staffLine.Measures[0].MeasureNumber;
         let labelOffsetX: number = 0;
         let labelCreated: boolean = false; // whether a measure number label was created for this system yet
+        const numberStaffLines: StaffLine[] = this.measureNumberStaffLines(musicSystem);
         for (let i: number = 0; i < staffLine.Measures.length; i++) {
             const measure: GraphicalMeasure = staffLine.Measures[i];
+            const multiRestCount: number = measure.parentSourceMeasure?.multipleRestMeasures ?? 0;
+            // A multiple rest keeps its number when it does not start the system, if the score asked for that.
+            const multiRestAlways: boolean = multiRestCount > 1 && this.rules.MeasureNumberMultipleRestAlways;
             let skip: boolean = this.rules.RenderMeasureNumbersOnlyAtSystemStart && i >= 1;
             if (i === 1 && staffLine.Measures[0].parentSourceMeasure.ImplicitMeasure && !labelCreated) {
                 // the first measure (i=0) is implicit and has no number: a pickup measure, or e.g. the second part of a measure split by a repeat.
@@ -504,8 +508,13 @@ export abstract class MusicSheetCalculator {
                     previousMeasureNumber = measure.MeasureNumber;
                 }
             }
-            if (skip) {
-                return; // no more measures number labels need to be rendered for this system, so we can just return instead of continue.
+            if (skip && !multiRestAlways) {
+                // System numbering stops after the first number, unless a later multiple rest
+                // was asked to keep its number (multiple-rest-always).
+                if (this.rules.MeasureNumberMultipleRestAlways) {
+                    continue;
+                }
+                return;
             }
             if (measure.MeasureNumber === 0 || measure.MeasureNumber === 1) {
                 previousMeasureNumber = measure.MeasureNumber;
@@ -526,20 +535,78 @@ export abstract class MusicSheetCalculator {
             const measureIsImplicit: boolean = sourceMeasure !== undefined &&
                 (sourceMeasure.ImplicitMeasure || sourceMeasure.ImplicitMeasureFromXml);
             const renderNumberForImplicit: boolean = !measureIsImplicit || this.rules.RenderMeasureNumbersForImplicitMeasures;
+            // Measure 1 at the start of the piece is usually unlabeled. A multiple rest there still shows
+            // its number when the score asked for a range, or for a number even mid-system.
+            const showMultiRestNumber: boolean = multiRestCount > 1 &&
+                (this.rules.MeasureNumberMultipleRestAlways || (i === 0 && this.rules.MeasureNumberMultipleRestRange));
             if (((measure.MeasureNumber === previousMeasureNumber ||
                 measure.MeasureNumber >= previousMeasureNumber + this.rules.MeasureNumberLabelOffset) ||
-                isFirstMeasureAndNotPrintedOne) &&
+                isFirstMeasureAndNotPrintedOne || showMultiRestNumber) &&
                 renderNumberForImplicit) {
                 if (measure.MeasureNumber !== 1 ||
                     (measure.MeasureNumber === 1 && measure !== staffLine.Measures[0]) ||
-                    isFirstMeasureAndNotPrintedOne
+                    isFirstMeasureAndNotPrintedOne ||
+                    showMultiRestNumber
                     ) {
-                    this.calculateSingleMeasureNumberPlacement(measure, staffLine, musicSystem, labelOffsetX);
+                    for (const numberStaffLine of numberStaffLines) {
+                        const numberedMeasure: GraphicalMeasure = numberStaffLine.Measures[i] ?? measure;
+                        this.calculateSingleMeasureNumberPlacement(numberedMeasure, numberStaffLine, musicSystem, labelOffsetX);
+                    }
                     labelCreated = true;
                 }
                 previousMeasureNumber = measure.MeasureNumber;
             }
         }
+    }
+
+    /**
+     * Where this system's measure numbers sit.
+     * Unset relation keeps the top staff, so scores without measure-numbering stay put.
+     * only-top and only-bottom use the system edge. also-top and also-bottom add the part's reference staff.
+     * none, and a staff above 1, use that staff of the part that supplied the element.
+     */
+    private measureNumberStaffLines(musicSystem: MusicSystem): StaffLine[] {
+        const lines: StaffLine[] = musicSystem.StaffLines;
+        const relation: string = this.rules.MeasureNumberSystemRelation;
+        const reference: StaffLine = this.measureNumberReferenceStaffLine(lines);
+        if (relation === "only-top") {
+            return [lines[0]];
+        }
+        if (relation === "only-bottom") {
+            return [lines[lines.length - 1]];
+        }
+        if (relation === "also-top") {
+            return reference === lines[0] ? [lines[0]] : [lines[0], reference];
+        }
+        if (relation === "also-bottom") {
+            const bottom: StaffLine = lines[lines.length - 1];
+            return reference === bottom ? [bottom] : [bottom, reference];
+        }
+        return [reference];
+    }
+
+    /** Staff named by measure-numbering@staff within the part that set it. Defaults to that part's top staff. */
+    private measureNumberReferenceStaffLine(lines: StaffLine[]): StaffLine {
+        const partLines: StaffLine[] = this.measureNumberPartStaffLines(lines);
+        const staffNumber: number = this.rules.MeasureNumberReferenceStaff;
+        if (staffNumber > 1 && partLines[staffNumber - 1]) {
+            return partLines[staffNumber - 1];
+        }
+        return partLines[0] ?? lines[0];
+    }
+
+    private measureNumberPartStaffLines(lines: StaffLine[]): StaffLine[] {
+        const instrumentId: number = this.rules.MeasureNumberingInstrumentId;
+        if (instrumentId === undefined) {
+            return lines;
+        }
+        const partLines: StaffLine[] = [];
+        for (const line of lines) {
+            if (line.ParentStaff.ParentInstrument.Id === instrumentId) {
+                partLines.push(line);
+            }
+        }
+        return partLines.length > 0 ? partLines : lines;
     }
 
     /// <summary>
@@ -550,7 +617,7 @@ export abstract class MusicSheetCalculator {
     /// <param name="musicSystem"></param>
     private calculateSingleMeasureNumberPlacement(measure: GraphicalMeasure, staffLine: StaffLine, musicSystem: MusicSystem,
                                                   labelOffsetX: number = 0): void {
-        const labelNumber: string = measure.parentSourceMeasure.getPrintedMeasureNumber().toString();
+        const labelNumber: string = this.measureNumberLabelText(measure);
         const label: Label = new Label(labelNumber);
         // maybe give rules as argument instead of just setting fontStyle and maybe other settings manually afterwards
         const graphicalLabel: GraphicalLabel = new GraphicalLabel(label, this.rules.MeasureNumberLabelHeight,
@@ -599,21 +666,42 @@ export abstract class MusicSheetCalculator {
         }
 
         relativeY = Math.min(0, relativeY);
+        // Skyline y is local to the staff line. The label's parent is the system, whose top staff
+        // already sits at that origin. A lower staff shifts down by the same distance the staff does.
+        const topStaffY: number = musicSystem.StaffLines[0].PositionAndShape.RelativePosition.y;
+        relativeY += staffLine.PositionAndShape.RelativePosition.y - topStaffY;
 
         graphicalLabel.PositionAndShape.RelativePosition = new PointF2D(relativeX, relativeY);
         musicSystem.MeasureNumberLabels.push(graphicalLabel);
     }
+
+    private measureNumberLabelText(measure: GraphicalMeasure): string {
+        const source: SourceMeasure = measure.parentSourceMeasure;
+        const start: number = source.getPrintedMeasureNumber();
+        const count: number = source.multipleRestMeasures;
+        if (!(count > 1 && this.rules.MeasureNumberMultipleRestRange)) {
+            return start.toString();
+        }
+        const endSource: SourceMeasure = this.graphicalMusicSheet.ParentMusicSheet.SourceMeasures[source.measureListIndex + count - 1];
+        const end: number = endSource ? endSource.getPrintedMeasureNumber() : start + count - 1;
+        return start + "-" + end;
+    }
     //So we can apply slurs first, then do these
     private calculateMeasureNumberSkyline(musicSystem: MusicSystem): void {
-        const staffLine: StaffLine = musicSystem.StaffLines[0];
-        for(const measureNumberLabel of musicSystem.MeasureNumberLabels) {
+        const staffLines: StaffLine[] = this.measureNumberStaffLines(musicSystem);
+        const topStaffY: number = musicSystem.StaffLines[0].PositionAndShape.RelativePosition.y;
+        const labels: GraphicalLabel[] = musicSystem.MeasureNumberLabels;
+        for (let i: number = 0; i < labels.length; i++) {
+            const measureNumberLabel: GraphicalLabel = labels[i];
+            const staffLine: StaffLine = staffLines[i % staffLines.length];
             // and the corresponding SkyLine indices
             let start: number = measureNumberLabel.PositionAndShape.RelativePosition.x;
             let end: number = start - measureNumberLabel.PositionAndShape.BorderLeft + measureNumberLabel.PositionAndShape.BorderRight;
             start -= staffLine.PositionAndShape.RelativePosition.x;
             end -= staffLine.PositionAndShape.RelativePosition.x;
+            const staffDeltaY: number = staffLine.PositionAndShape.RelativePosition.y - topStaffY;
             staffLine.SkyBottomLineCalculator.updateSkyLineInRange(start, end,
-                measureNumberLabel.PositionAndShape.RelativePosition.y + measureNumberLabel.PositionAndShape.BorderMarginTop);
+                measureNumberLabel.PositionAndShape.RelativePosition.y - staffDeltaY + measureNumberLabel.PositionAndShape.BorderMarginTop);
         }
     }
 

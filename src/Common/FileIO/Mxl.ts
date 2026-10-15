@@ -66,12 +66,55 @@ export class MXLHelper {
         }
         const parser: DOMParser = new DOMParser();
         const doc: Document = parser.parseFromString(container, "text/xml");
-        const rootFile: string = doc.getElementsByTagName("rootfile")[0].getAttribute("full-path");
-        const xmlText: string = await zip.file(rootFile).async("text");
+        const rootFile: string = this.musicXmlRootPath(doc);
+        return this.readEntry(zip, rootFile);
+    }
 
+    /**
+     * Path of the main score inside a container.xml document.
+     * A rootfile with no media-type is MusicXML, which is how files from before MusicXML 4.0 are written.
+     * When several rootfiles are present, the first MusicXML one is the score; later ones may be a PDF,
+     * audio, or a part file. If none of them is MusicXML, the first entry is used, the previous behavior.
+     */
+    public static musicXmlRootPath(containerDocument: Document): string {
+        const rootFiles: HTMLCollectionOf<Element> = containerDocument.getElementsByTagName("rootfile");
+        if (rootFiles.length === 0) {
+            throw new Error("MXL container has no rootfile");
+        }
+        for (let idx: number = 0; idx < rootFiles.length; idx++) {
+            if (this.isMusicXmlMediaType(rootFiles[idx].getAttribute("media-type"))) {
+                const fullPath: string = rootFiles[idx].getAttribute("full-path");
+                if (fullPath) {
+                    return fullPath;
+                }
+            }
+        }
+        return rootFiles[0].getAttribute("full-path");
+    }
+
+    /**
+     * True for a MusicXML rootfile. An empty media-type means MusicXML, per the container specification.
+     * The two registered types are the uncompressed score and the compressed container.
+     */
+    public static isMusicXmlMediaType(mediaType: string | null): boolean {
+        if (!mediaType || mediaType.trim() === "") {
+            return true;
+        }
+        const normalized: string = mediaType.trim().toLowerCase();
+        return normalized === "application/vnd.recordare.musicxml+xml"
+            || normalized === "application/vnd.recordare.musicxml";
+    }
+
+    /** Text of one zip entry, decoding UTF-16 the same way as the main score. */
+    public static async readEntry(zip: JSZip, fullPath: string): Promise<string> {
+        const entry: JSZip.JSZipObject | null = zip.file(fullPath);
+        if (!entry) {
+            throw new Error("MXL entry not found: " + fullPath);
+        }
+        const xmlText: string = await entry.async("text");
         if (!xmlText.substring(0, 1).startsWith("<")) {
             // assume UTF-16
-            const uint8Array: Uint8Array = await zip.file(rootFile).async("uint8array");
+            const uint8Array: Uint8Array = await entry.async("uint8array");
             return new TextDecoder("utf-16").decode(uint8Array);
         }
         return xmlText;

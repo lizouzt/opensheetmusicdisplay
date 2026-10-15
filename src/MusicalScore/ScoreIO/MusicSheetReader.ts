@@ -27,6 +27,7 @@ import {RepetitionCalculator} from "./MusicSymbolModules/RepetitionCalculator";
 import {EngravingRules} from "../Graphical/EngravingRules";
 import { ReaderPluginManager } from "./ReaderPluginManager";
 import { TextAlignmentEnum } from "../../Common/Enums/TextAlignment";
+import { PartLink } from "../PartLink";
 
 export class MusicSheetReader /*implements IMusicSheetReader*/ {
 
@@ -41,6 +42,8 @@ export class MusicSheetReader /*implements IMusicSheetReader*/ {
      this.rules = rules;
     }
 
+    /** MusicXML 4.0 credits whose only type is "part name", in document order. */
+    private creditPartNames: string[] = [];
     private repetitionInstructionReader: RepetitionInstructionReader;
     private repetitionCalculator: RepetitionCalculator;
     private afterSheetReadingModules: IAfterSheetReadingModule[];
@@ -859,9 +862,13 @@ export class MusicSheetReader /*implements IMusicSheetReader*/ {
             const credit: IXmlElement = creditElements[idx];
             const page: string = credit.attribute("page")?.value ?? "1"; // optional in MusicXML, 1 by default
             if (page === "1") {
+                const [creditType, creditText, creditLanguage] = this.getCreditTypeTextAndLanguage(credit);
+                if (creditType === "part name" && creditText?.trim()) {
+                    this.creditPartNames.push(this.trimString(creditText));
+                    continue;
+                }
                 if (systemYCoordinates === 0) {
                     // without page layout, the position of a credit doesn't tell its role: read it by its <credit-type>
-                    const [creditType, creditText, creditLanguage] = this.getCreditTypeTextAndLanguage(credit);
                     if (creditType === "title") {
                         if (!finalTitle) {
                             finalTitle = creditText;
@@ -1215,7 +1222,12 @@ export class MusicSheetReader /*implements IMusicSheetReader*/ {
                     for (let idx2: number = 0, len2: number = partElements.length; idx2 < len2; ++idx2) {
                         const partElement: IXmlElement = partElements[idx2];
                         try {
-                            if (partElement.name === "part-name") {
+                            if (partElement.name === "part-link") {
+                                const link: PartLink = PartLink.fromXml(partElement);
+                                if (link.href) {
+                                    instrument.PartLinks.push(link);
+                                }
+                            } else if (partElement.name === "part-name") {
                                 instrument.Name = partElement.value;
                                 if (partElement.attribute("print-object") &&
                                    partElement.attribute("print-object").value === "no") {
@@ -1358,7 +1370,20 @@ export class MusicSheetReader /*implements IMusicSheetReader*/ {
             throw new MusicSheetReadingException(errorMsg, e);
         }
 
+        this.applyCreditPartNames();
         return instrumentDict;
+    }
+
+    /** A "part name" credit replaces the matching part-name when there is one credit per part. */
+    private applyCreditPartNames(): void {
+        const names: string[] = this.creditPartNames;
+        const instruments: Instrument[] = this.musicSheet.Instruments;
+        if (names.length === 0 || names.length !== instruments.length) {
+            return;
+        }
+        for (let i: number = 0; i < names.length; i++) {
+            instruments[i].Name = names[i];
+        }
     }
 
     private countInstrumentsInGroup(group: InstrumentalGroup): number {

@@ -1,7 +1,7 @@
 import {Instrument} from "../Instrument";
 import {MusicSheet} from "../MusicSheet";
 import {VoiceGenerator} from "./VoiceGenerator";
-import {Staff} from "../VoiceData/Staff";
+import {Staff, StaffLineDetail} from "../VoiceData/Staff";
 import {SourceMeasure} from "../VoiceData/SourceMeasure";
 import {SourceStaffEntry} from "../VoiceData/SourceStaffEntry";
 import {ClefInstruction} from "../VoiceData/Instructions/ClefInstruction";
@@ -26,6 +26,7 @@ import {SlurReader} from "./MusicSymbolModules/SlurReader";
 import {StemDirectionType, VoiceEntry} from "../VoiceData/VoiceEntry";
 import {NoteType, NoteTypeHandler} from "../VoiceData/NoteType";
 import { SystemLinesEnumHelper } from "../Graphical/SystemLinesEnum";
+import { EngravingRules } from "../Graphical/EngravingRules";
 import { ReaderPluginManager } from "./ReaderPluginManager";
 import { TremoloInfo } from "../VoiceData/Note";
 // import {Dictionary} from "typescript-collections";
@@ -191,6 +192,7 @@ export class InstrumentReader {
           if (newPageAttr?.value === "yes") {
             currentMeasure.printNewPageXml = true;
           }
+          this.readMeasureNumbering(xmlNode);
         } else if (xmlNode.name === "attributes") {
           const divisionsNode: IXmlElement = xmlNode.element("divisions");
           if (divisionsNode) {
@@ -233,17 +235,21 @@ export class InstrumentReader {
           }
           const staffDetailsNodes: IXmlElement[] = xmlNode.elements("staff-details"); // there can be multiple, even if redundant. see #1041
           for (const staffDetailsNode of staffDetailsNodes) {
+            let staffNumber: number = 1;
+            const staffNumberAttr: Attr = staffDetailsNode.attribute("number");
+            if (staffNumberAttr) {
+              staffNumber = parseInt(staffNumberAttr.value, 10);
+            }
+            const staff: Staff = this.instrument.Staves[staffNumber - 1];
+            if (!staff) {
+              continue;
+            }
             const staffLinesNode: IXmlElement = staffDetailsNode.element("staff-lines");
             if (staffLinesNode) {
-              let staffNumber: number = 1;
-              const staffNumberAttr: Attr = staffDetailsNode.attribute("number");
-              if (staffNumberAttr) {
-                staffNumber = parseInt(staffNumberAttr.value, 10);
-              }
-              const staff: Staff = this.instrument.Staves[staffNumber - 1];
               staff.StafflineCount = parseInt(staffLinesNode.value, 10);
               staff.xmlStafflineCount = isNaN(staff.StafflineCount) ? undefined : staff.StafflineCount;
             }
+            this.readStaffLineDetails(staff, staffDetailsNode);
           }
           // check multi measure rest
           const measureStyle: IXmlElement = xmlNode.element("measure-style");
@@ -843,6 +849,33 @@ export class InstrumentReader {
     key.Parent = entry;
     const position: number = entry.Instructions[0] instanceof ClefInstruction ? 1 : 0;
     entry.Instructions.splice(position, 0, key);
+  }
+
+  /** Reads <line-detail> onto the staff. A later detail for the same line replaces the earlier one. */
+  private readStaffLineDetails(staff: Staff, staffDetailsNode: IXmlElement): void {
+    const lineDetailNodes: IXmlElement[] = staffDetailsNode.elements("line-detail");
+    for (let lineIndex: number = 0; lineIndex < lineDetailNodes.length; lineIndex++) {
+      const lineNode: IXmlElement = lineDetailNodes[lineIndex];
+      const lineAttr: Attr = lineNode.attribute("line");
+      if (!lineAttr) {
+        continue;
+      }
+      const lineNumber: number = parseInt(lineAttr.value, 10);
+      if (isNaN(lineNumber)) {
+        continue;
+      }
+      const detail: StaffLineDetail = new StaffLineDetail(lineNumber);
+      detail.Visible = lineNode.attribute("print-object")?.value !== "no";
+      const widthValue: string = lineNode.attribute("width")?.value;
+      if (widthValue) {
+        detail.WidthTenths = parseFloat(widthValue);
+      }
+      const colorValue: string = lineNode.attribute("color")?.value;
+      if (colorValue) {
+        detail.Color = colorValue;
+      }
+      staff.setLineDetail(detail);
+    }
   }
 
   /** Measure-repeat lengths supported by the renderer. */
@@ -1523,10 +1556,55 @@ export class InstrumentReader {
          directionStaffNumber = 1;
          log.debug("InstrumentReader.readExpressionStaffNumber", errorMsg, ex);
        }
-
      }
    }
    return directionStaffNumber;
+  }
+
+  /**
+   * none, measure, or system, plus the 4.0 staff and multiple-rest attributes.
+   * The first part that asks for numbers wins. A later part's none does not remove them.
+   */
+  private readMeasureNumbering(printNode: IXmlElement): void {
+    const numbering: IXmlElement = printNode.element("measure-numbering");
+    if (!numbering) {
+      return;
+    }
+    const rules: EngravingRules = this.musicSheet.Rules;
+    if (rules.MeasureNumberingFromXml && rules.MeasureNumberingInstrumentId !== this.instrument.Id) {
+      return;
+    }
+    rules.MeasureNumberingFromXml = true;
+    rules.MeasureNumberingInstrumentId = this.instrument.Id;
+    const value: string = (numbering.value ?? "").trim();
+    if (value === "none") {
+      rules.RenderMeasureNumbers = false;
+    } else if (value === "measure") {
+      rules.RenderMeasureNumbers = true;
+      rules.RenderMeasureNumbersOnlyAtSystemStart = false;
+    } else if (value === "system") {
+      rules.RenderMeasureNumbers = true;
+      rules.RenderMeasureNumbersOnlyAtSystemStart = true;
+    }
+    const staffValue: string = numbering.attribute("staff")?.value;
+    if (staffValue) {
+      const staffNumber: number = parseInt(staffValue, 10);
+      if (!isNaN(staffNumber)) {
+        rules.MeasureNumberReferenceStaff = staffNumber;
+      }
+    }
+    const relation: string = numbering.attribute("system")?.value;
+    if (relation) {
+      rules.MeasureNumberSystemRelation = relation;
+    }
+    const always: string = numbering.attribute("multiple-rest-always")?.value;
+    if (always === "yes" || always === "no") {
+      rules.MeasureNumberMultipleRestAlways = always === "yes";
+    }
+    const range: string = numbering.attribute("multiple-rest-range")?.value;
+    if (range === "yes" || range === "no") {
+      rules.MeasureNumberMultipleRestRange = range === "yes";
+    }
   }
 
   /**

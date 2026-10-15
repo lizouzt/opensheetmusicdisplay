@@ -1991,14 +1991,15 @@ export class VexFlowMusicSheetCalculator extends MusicSheetCalculator {
       endStaffLine = startStaffLine;
     }
     if (endMeasure && startStaffLine && endStaffLine) {
-      let openEnd: boolean = false;
+      // discontinue has no lift. A line that runs into the next system is also open at this system's end.
+      let openEnd: boolean = pedal.OpenEnd;
       const startNoteMeasures: GraphicalMeasure[] = startIsClipped ? startStaffLine.Measures : [startMeasure];
       const endNoteMeasures: GraphicalMeasure[] = endIsClipped ? endStaffLine.Measures : [endMeasure];
       if (startStaffLine !== endStaffLine) {
         openEnd = true;
       }
       // calculate GraphicalPedal and RelativePositions
-      const graphicalPedal: VexFlowPedal = new VexFlowPedal(pedal, startStaffLine.PositionAndShape, false, openEnd);
+      const graphicalPedal: VexFlowPedal = new VexFlowPedal(pedal, startStaffLine.PositionAndShape, pedal.OpenBegin, openEnd);
       graphicalPedal.setEndsStave(endMeasure, endTimeStamp); // unfortunately this can't already be checked in ExpressionReader
       // calculate RelativePosition
       let startStaffEntry: GraphicalStaffEntry = startMeasure.findGraphicalStaffEntryFromTimestamp(startTimeStamp);
@@ -2064,6 +2065,7 @@ export class VexFlowMusicSheetCalculator extends MusicSheetCalculator {
                 nextOpenEnd = true;
               } else {
                 nextChangeEndFromParent = true;
+                nextOpenEnd = pedal.OpenEnd;
               }
               currentCount++;
               // pedal starts on the first measure

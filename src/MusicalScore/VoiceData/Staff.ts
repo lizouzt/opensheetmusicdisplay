@@ -2,6 +2,21 @@ import {Voice} from "./Voice";
 import {Instrument} from "../Instrument";
 import { Tie } from "./Tie";
 
+/** One MusicXML <line-detail>: line 1 is the bottom staff line. */
+export class StaffLineDetail {
+    constructor(line: number) {
+        this.Line = line;
+    }
+
+    /** MusicXML line number, counting from the bottom. */
+    public Line: number;
+    /** print-object is yes unless the XML says no. */
+    public Visible: boolean = true;
+    /** Staff line width in tenths. Undefined keeps the default stroke. */
+    public WidthTenths: number;
+    public Color: string;
+}
+
 export class Staff {
 
     constructor(parentInstrument: Instrument, instrumentStaffId: number) {
@@ -29,6 +44,7 @@ export class Staff {
     public xmlStafflineCount: number;
     public hasLyrics: boolean = false;
     public openTieDict: { [_: number]: Tie } = {};
+    private lineDetails: StaffLineDetail[] = [];
 
     public get ParentInstrument(): Instrument {
         return this.parentInstrument;
@@ -53,6 +69,14 @@ export class Staff {
     }
     public set StafflineCount(value: number) {
         this.stafflineCount = value;
+    }
+    public get LineDetails(): StaffLineDetail[] {
+        return this.lineDetails;
+    }
+    /** Replaces an earlier detail for the same line. */
+    public setLineDetail(detail: StaffLineDetail): void {
+        this.lineDetails = this.lineDetails.filter((existing: StaffLineDetail): boolean => existing.Line !== detail.Line);
+        this.lineDetails.push(detail);
     }
     /** Checks whether Staff.Visible and Staff.ParentInstrument.Visible. */
     public isVisible(): boolean {

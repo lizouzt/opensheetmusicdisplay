@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<score-timewise version="4.1">
+  <work><work-title>Deprecated timewise score</work-title></work>
+  <identification>
+    <creator type="composer">Support matrix</creator>
+    <encoding><software>support-matrix</software><encoding-date>2026-10-15</encoding-date></encoding>
+    <miscellaneous>
+      <miscellaneous-field name="expected">Timewise format is deprecated. A partwise reader should report that clearly or convert it. This file contains one original C quarter note.</miscellaneous-field>
+    </miscellaneous>
+  </identification>
+  <part-list>
+    <score-part id="P1"><part-name>Melody</part-name></score-part>
+  </part-list>
+  <measure number="1">
+    <part id="P1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+    </part>
+  </measure>
+</score-timewise>

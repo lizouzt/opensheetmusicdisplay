@@ -3,7 +3,7 @@ import VF = Vex.Flow;
 import {GraphicalMeasure} from "../GraphicalMeasure";
 import {VexFlowMeasureRepeat} from "./VexFlowMeasureRepeat";
 import {SourceMeasure} from "../../VoiceData/SourceMeasure";
-import {Staff} from "../../VoiceData/Staff";
+import {Staff, StaffLineDetail} from "../../VoiceData/Staff";
 import {StaffLine} from "../StaffLine";
 import {SystemLinesEnum} from "../SystemLinesEnum";
 import {ClefInstruction, ClefEnum} from "../../VoiceData/Instructions/ClefInstruction";
@@ -143,6 +143,7 @@ export class VexFlowMeasure extends GraphicalMeasure {
 
         if (this.ParentStaff) {
             this.setLineNumber(this.ParentStaff.StafflineCount);
+            this.applyStaffLineDetails();
         }
         // constructor sets beginning and end bar type to standard
 
@@ -262,6 +263,32 @@ export class VexFlowMeasure extends GraphicalMeasure {
                     return this.getYForLine(this.options.num_lines);
                 };
             }
+        }
+    }
+
+    /**
+     * MusicXML line 1 is the bottom line. VexFlow line 0 is the top.
+     * A staff space is 40 tenths and unitInPixels pixels, so a width in tenths becomes pixels at unitInPixels / 40.
+     */
+    private applyStaffLineDetails(): void {
+        const details: StaffLineDetail[] = this.ParentStaff?.LineDetails;
+        if (!details || details.length === 0) {
+            return;
+        }
+        const numLines: number = this.stave.options.num_lines;
+        for (const detail of details) {
+            const vfIndex: number = numLines - detail.Line;
+            if (vfIndex < 0 || vfIndex >= numLines) {
+                continue;
+            }
+            const config: { visible: boolean, strokeStyle?: string, lineWidth?: number } = { visible: detail.Visible };
+            if (detail.Color) {
+                config.strokeStyle = detail.Color;
+            }
+            if (detail.WidthTenths !== undefined && !isNaN(detail.WidthTenths)) {
+                config.lineWidth = detail.WidthTenths * unitInPixels / 40;
+            }
+            this.stave.setConfigForLine(vfIndex, config);
         }
     }
 

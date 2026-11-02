@@ -235,6 +235,10 @@ export abstract class MusicSystem extends GraphicalObject {
     public createInstrumentBrackets(instruments: Instrument[], staffHeight: number): void {
         for (let idx: number = 0, len: number = instruments.length; idx < len; ++idx) {
             const instrument: Instrument = instruments[idx];
+            if (instrument.PartSymbols.length > 0) {
+                this.createPartSymbols(instrument);
+                continue;
+            }
             if (instrument.Staves.length > 1) {
                 let firstStaffLine: StaffLine = undefined, lastStaffLine: StaffLine = undefined;
                 for (let idx2: number = 0, len2: number = this.staffLines.length; idx2 < len2; ++idx2) {
@@ -249,6 +253,40 @@ export abstract class MusicSystem extends GraphicalObject {
                 if (firstStaffLine && lastStaffLine) {
                     this.createInstrumentBracket(firstStaffLine, lastStaffLine);
                 }
+            }
+        }
+    }
+
+    /** Draw each part-symbol across the staves it names, instead of one brace around the whole part. */
+    private createPartSymbols(instrument: Instrument): void {
+        for (const symbol of instrument.PartSymbols) {
+            if (!symbol.kind || symbol.kind === "none") {
+                continue;
+            }
+            const topIndex: number = Math.min(symbol.topStaff, symbol.bottomStaff) - 1;
+            const bottomIndex: number = Math.max(symbol.topStaff, symbol.bottomStaff) - 1;
+            const topStaff: Staff = instrument.Staves[topIndex];
+            const bottomStaff: Staff = instrument.Staves[bottomIndex];
+            if (!topStaff || !bottomStaff) {
+                continue;
+            }
+            let firstStaffLine: StaffLine = undefined;
+            let lastStaffLine: StaffLine = undefined;
+            for (const staffLine of this.staffLines) {
+                if (staffLine.ParentStaff === topStaff && topStaff.Visible) {
+                    firstStaffLine = staffLine;
+                }
+                if (staffLine.ParentStaff === bottomStaff && bottomStaff.Visible) {
+                    lastStaffLine = staffLine;
+                }
+            }
+            if (!firstStaffLine || !lastStaffLine) {
+                continue;
+            }
+            if (symbol.kind === "brace") {
+                this.createInstrumentBracket(firstStaffLine, lastStaffLine);
+            } else if (symbol.kind === "bracket" || symbol.kind === "square" || symbol.kind === "line") {
+                this.createInstrumentStaffBracket(firstStaffLine, lastStaffLine);
             }
         }
     }
@@ -550,6 +588,11 @@ export abstract class MusicSystem extends GraphicalObject {
     }
 
     protected createInstrumentBracket(firstStaffLine: StaffLine, lastStaffLine: StaffLine): void {
+        // no impl here
+    }
+
+    /** A bracket from part-symbol. Drawn with the instrument braces, including a one-part system. */
+    protected createInstrumentStaffBracket(firstStaffLine: StaffLine, lastStaffLine: StaffLine): void {
         // no impl here
     }
 

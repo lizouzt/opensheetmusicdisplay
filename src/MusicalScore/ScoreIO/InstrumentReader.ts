@@ -5,7 +5,7 @@ import {Staff, StaffLineDetail} from "../VoiceData/Staff";
 import {SourceMeasure} from "../VoiceData/SourceMeasure";
 import {SourceStaffEntry} from "../VoiceData/SourceStaffEntry";
 import {ClefInstruction} from "../VoiceData/Instructions/ClefInstruction";
-import {KeyInstruction} from "../VoiceData/Instructions/KeyInstruction";
+import {KeyInstruction, KeyAccidentalMark} from "../VoiceData/Instructions/KeyInstruction";
 import {MeasureRepeatInstruction, MeasureRepeatType} from "../VoiceData/Instructions/MeasureRepeatInstruction";
 import {RhythmInstruction} from "../VoiceData/Instructions/RhythmInstruction";
 import {AbstractNotationInstruction} from "../VoiceData/Instructions/AbstractNotationInstruction";
@@ -32,6 +32,7 @@ import { EngravingRules } from "../Graphical/EngravingRules";
 import { ReaderPluginManager } from "./ReaderPluginManager";
 import { TremoloInfo } from "../VoiceData/Note";
 import { StaffDivideType } from "../VoiceData/StaffDivide";
+import { PartSymbol } from "../VoiceData/PartSymbol";
 // import {Dictionary} from "typescript-collections";
 
 // FIXME: The following classes are missing
@@ -571,6 +572,17 @@ export class InstrumentReader {
               this.currentMeasure.endingBarStyleEnum = SystemLinesEnumHelper.xmlBarlineStyleToSystemLinesEnum(stringValue);
             }
           }
+          if (locationValue === "right" || isEndingBarline) {
+            const symbols: string[] = [];
+            for (const child of xmlNode.elements()) {
+              if (child.name === "segno" || child.name === "coda") {
+                symbols.push(child.name);
+              }
+            }
+            if (symbols.length > 0) {
+              this.currentMeasure.BarlineSymbols = symbols;
+            }
+          }
           // TODO do we need to process bars with left location too?
         } else if (xmlNode.name === "sound") {
           // (*) MetronomeReader.readTempoInstruction(xmlNode, this.musicSheet, this.currentXmlMeasureIndex);
@@ -1060,6 +1072,8 @@ export class InstrumentReader {
    * @param guitarPro
    */
   private addAbstractInstruction(attrNode: IXmlElement, guitarPro: boolean, previousNode: IXmlElement, currentFraction: Fraction): void {
+    this.readPartSymbols(attrNode);
+    this.readVoiceDirections(attrNode);
     if (attrNode.element("divisions")) {
       if (attrNode.elements().length === 1) {
         return;
@@ -1219,14 +1233,28 @@ export class InstrumentReader {
           continue;
         }
         const keyInstruction: KeyInstruction = new KeyInstruction(undefined, key, keyEnum);
+        let accidentalStep: string = "";
+        const keyAccidentals: KeyAccidentalMark[] = [];
+        for (const child of keyElement.elements()) {
+          if (child.name === "key-step") {
+            accidentalStep = child.value ?? "";
+          } else if (child.name === "key-accidental") {
+            keyAccidentals.push({
+              step: accidentalStep,
+              accidental: child.value,
+              smufl: child.attribute("smufl")?.value,
+            });
+          }
+        }
         const accidentalSmufl: string[] = [];
-        for (const accidentalNode of keyElement.elements("key-accidental")) {
-          const smuflGlyph: string = accidentalNode.attribute("smufl")?.value;
-          if (smuflGlyph) {
-            accidentalSmufl.push(smuflGlyph);
+        for (const mark of keyAccidentals) {
+          if (mark.smufl) {
+            accidentalSmufl.push(mark.smufl);
           }
         }
         keyInstruction.AccidentalSmufl = accidentalSmufl;
+        keyInstruction.KeyAccidentals = keyAccidentals;
+        keyInstruction.NonTraditional = !keyNode && keyAccidentals.length > 0;
         if (currentFraction.RealValue > 0) {
           if (!this.activeKeysHaveBeenInitialized[staffIndex]) {
             this.createDefaultKeyInstruction(staffIndex);
@@ -1343,7 +1371,7 @@ export class InstrumentReader {
       }
       const staffIndex: number = instruction[0] - 1;
       const keyInstruction: KeyInstruction = <KeyInstruction>instruction[1];
-      if (!this.activeKeys[staffIndex] || this.activeKeys[staffIndex].Key !== keyInstruction.Key) {
+      if (!this.activeKeys[staffIndex] || this.activeKeys[staffIndex].Key !== keyInstruction.Key || keyInstruction.NonTraditional) {
         this.activeKeys[staffIndex] = keyInstruction;
         let sourceMeasure: SourceMeasure = this.currentMeasure;
         if (!this.activeKeysHaveBeenInitialized[staffIndex]) {
@@ -1789,6 +1817,37 @@ export class InstrumentReader {
       noteTypeXml = NoteTypeHandler.StringToNoteType(typeNode.value);
     }
     return [isCueNote, noteTypeXml];
+  }
+
+  private readPartSymbols(attrNode: IXmlElement): void {
+    const symbolNodes: IXmlElement[] = attrNode.elements("part-symbol");
+    if (symbolNodes.length === 0) {
+      return;
+    }
+    const symbols: PartSymbol[] = [];
+    for (const node of symbolNodes) {
+      const topParsed: number = parseInt(node.attribute("top-staff")?.value, 10);
+      const bottomParsed: number = parseInt(node.attribute("bottom-staff")?.value, 10);
+      const topStaff: number = Number.isFinite(topParsed) ? topParsed : 1;
+      const bottomStaff: number = Number.isFinite(bottomParsed) ? bottomParsed : this.instrument.Staves.length;
+      symbols.push(new PartSymbol(node.value, topStaff, bottomStaff));
+    }
+    this.instrument.PartSymbols = symbols;
+  }
+
+  private readVoiceDirections(attrNode: IXmlElement): void {
+    const directions: IXmlElement = attrNode.element("voice-directions");
+    if (!directions) {
+      return;
+    }
+    for (const node of directions.elements("voice-direction")) {
+      const voiceId: number = parseInt(node.attribute("voice")?.value, 10);
+      const direction: string = node.value;
+      if (!Number.isFinite(voiceId) || (direction !== "up" && direction !== "down")) {
+        continue;
+      }
+      this.instrument.setVoiceDirection(voiceId, direction);
+    }
   }
 
   private getStemDirectionType(stemNode: IXmlElement): StemDirectionType {

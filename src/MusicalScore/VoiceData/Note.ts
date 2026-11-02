@@ -16,9 +16,12 @@ import { TechnicalInstruction } from "./Instructions";
 import { Glissando } from "../../MusicalScore/VoiceData/Glissando";
 import { NoteBend } from "./NoteBend";
 
-/**
- * Represents a single pitch with a duration (length)
- */
+/** A numbered harmonic on one note. kind is "natural" or "artificial" when the score says so. */
+export interface NoteHarmonic {
+    number: string;
+    kind: string;
+}
+
 export class Note {
 
     constructor(voiceEntry: VoiceEntry, parentStaffEntry: SourceStaffEntry, length: Fraction, pitch: Pitch, sourceMeasure: SourceMeasure, isRest?: boolean) {
@@ -110,6 +113,10 @@ export class Note {
     public AccidentalBracketXml: boolean;
     /** MusicXML accidental@smufl. Stored only; medieval and Kievan glyphs are not in the font. */
     public AccidentalSmufl: string;
+    /** Every accidental element on this note, in document order. The first is closest to the notehead. */
+    public AccidentalXmls: string[] = [];
+    /** MusicXML technical/harmonic, including its number. */
+    public Harmonic: NoteHarmonic;
     /** MusicXML notehead-text/accidental-text@smufl. Stored only. */
     public NoteheadAccidentalSmufl: string;
     /** Text of notehead-text/accidental-text, such as "sharp". */

@@ -59,6 +59,8 @@ export class SourceMeasure {
      */
     public endingBarStyleXml: string;
     public endingBarStyleEnum: SystemLinesEnum;
+    /** segno and coda children of the right barline, in document order. */
+    public BarlineSymbols: string[] = [];
     /** Whether the MusicXML says to print a new system (line break). See OSMDOptions.newSystemFromXML */
     public printNewSystemXml: boolean = false;
     /** MusicXML staff-divide on each global staff. Absent when that staff has no divider. */

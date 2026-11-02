@@ -45,6 +45,11 @@ import { Arpeggio, ArpeggioType } from "../../VoiceData/Arpeggio";
 import { VexFlowVoiceEntry } from "./VexFlowVoiceEntry";
 import { Fraction } from "../../../Common/DataObjects/Fraction";
 import { StaffDivideType } from "../../VoiceData/StaffDivide";
+import { KeyInstruction, KeyAccidentalMark } from "../../VoiceData/Instructions/KeyInstruction";
+import { ClefInstruction, ClefEnum } from "../../VoiceData/Instructions/ClefInstruction";
+import { NoteHarmonic } from "../../VoiceData/Note";
+import { SourceStaffEntry } from "../../VoiceData/SourceStaffEntry";
+import { SourceMeasure } from "../../VoiceData/SourceMeasure";
 import { SkyBottomLineCalculator } from "../SkyBottomLineCalculator";
 
 /**
@@ -148,6 +153,9 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
         this.drawBends(staffLine);
         this.drawUnbrokenArpeggioBridges(staffLine);
         this.drawStaffDivides(staffLine);
+        this.drawBarlineSymbols(staffLine);
+        this.drawNonTraditionalKeyAccidentals(staffLine);
+        this.drawHarmonics(staffLine);
         ctx.closeGroup();
     }
 
@@ -499,6 +507,183 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
         context.setStrokeStyle(color);
         context.stroke();
         context.closeGroup();
+    }
+
+    /** Segno and coda signs listed on the right barline, from left to right above the staff. */
+    private drawBarlineSymbols(staffLine: StaffLine): void {
+        for (const measure of staffLine.Measures) {
+            const symbols: string[] = measure.parentSourceMeasure?.BarlineSymbols;
+            if (!symbols || symbols.length === 0 || measure.IsExtraGraphicalMeasure) {
+                continue;
+            }
+            const stave: any = (measure as any).stave;
+            if (!stave || typeof stave.getX !== "function") {
+                continue;
+            }
+            const endX: number = stave.getX() + stave.getWidth();
+            if (!this.lazyDrawsAtX(endX)) {
+                continue;
+            }
+            const context: any = this.backend.getContext();
+            const group: any = context.openGroup("barlinesymbol", `barlinesymbol-${measure.MeasureNumber}`);
+            if (group?.setAttribute) {
+                group.setAttribute("data-kinds", symbols.join(","));
+            }
+            const y: number = stave.getYForLine(0) - 6;
+            let x: number = endX - 18 - (symbols.length - 1) * 22;
+            for (const kind of symbols) {
+                const code: string = kind === "coda" ? "v4d" : "v8c";
+                const scale: number = kind === "coda" ? 32 : 26;
+                (VF.Glyph as any).renderGlyph(context, x, y, scale, code);
+                x += 22;
+            }
+            context.closeGroup();
+        }
+    }
+
+    /** Accidentals of a key that lists key-step and key-accidental instead of fifths. */
+    private drawNonTraditionalKeyAccidentals(staffLine: StaffLine): void {
+        const staffIndex: number = staffLine.ParentStaff?.idInMusicSheet;
+        if (staffIndex === undefined) {
+            return;
+        }
+        for (const measure of staffLine.Measures) {
+            if (measure.IsExtraGraphicalMeasure) {
+                continue;
+            }
+            const instruction: KeyInstruction = this.nonTraditionalKey(measure, staffIndex);
+            if (!instruction) {
+                continue;
+            }
+            const stave: any = (measure as any).stave;
+            if (!stave || typeof stave.getYForNote !== "function") {
+                continue;
+            }
+            const xStart: number = stave.getX() + 46;
+            if (!this.lazyDrawsAtX(xStart)) {
+                continue;
+            }
+            const clef: ClefEnum = this.clefBeforeKey(measure, staffIndex);
+            const context: any = this.backend.getContext();
+            const group: any = context.openGroup("keyaccidental", `keyaccidental-${measure.MeasureNumber}`);
+            if (group?.setAttribute) {
+                group.setAttribute("data-accidentals", instruction.KeyAccidentals.map((mark: KeyAccidentalMark) => mark.accidental).join(","));
+            }
+            let x: number = xStart;
+            for (const mark of instruction.KeyAccidentals) {
+                const pitch: string = this.keyAccidentalPitch(mark.step, clef);
+                const y: number = stave.getYForNote(pitch);
+                const codes: string[] = VexFlowConverter.accidentalXmlCodes(mark.accidental);
+                for (const code of codes) {
+                    const glyph: string = VexFlowConverter.accidentalGlyphCode(code);
+                    if (glyph) {
+                        (VF.Glyph as any).renderGlyph(context, x, y, 38, glyph);
+                        x += 14;
+                    }
+                }
+            }
+            context.closeGroup();
+        }
+    }
+
+    private instructionEntries(measure: GraphicalMeasure, staffIndex: number): SourceStaffEntry[] {
+        const source: SourceMeasure = measure.parentSourceMeasure;
+        const entries: SourceStaffEntry[] = [];
+        const initial: SourceStaffEntry = source?.FirstInstructionsStaffEntries?.[staffIndex];
+        if (initial) {
+            entries.push(initial);
+        }
+        for (const container of source?.VerticalSourceStaffEntryContainers ?? []) {
+            const entry: SourceStaffEntry = container.StaffEntries[staffIndex];
+            if (entry) {
+                entries.push(entry);
+            }
+        }
+        return entries;
+    }
+
+    private nonTraditionalKey(measure: GraphicalMeasure, staffIndex: number): KeyInstruction {
+        for (const entry of this.instructionEntries(measure, staffIndex)) {
+            for (const instruction of entry.Instructions) {
+                if (instruction instanceof KeyInstruction && instruction.NonTraditional) {
+                    return instruction;
+                }
+            }
+        }
+        return undefined;
+    }
+
+    private clefBeforeKey(measure: GraphicalMeasure, staffIndex: number): ClefEnum {
+        for (const entry of this.instructionEntries(measure, staffIndex)) {
+            for (const instruction of entry.Instructions) {
+                if (instruction instanceof ClefInstruction) {
+                    return instruction.ClefType;
+                }
+            }
+        }
+        return ClefEnum.G;
+    }
+
+    /** Staff position used for a key-signature accidental in treble, bass, or alto. */
+    private keyAccidentalPitch(step: string, clef: ClefEnum): string {
+        const letter: string = (step || "C").toLowerCase();
+        let octave: string = "5";
+        if (clef === ClefEnum.F) {
+            octave = letter === "a" || letter === "b" || letter === "g" ? "2" : "3";
+        } else if (clef === ClefEnum.C) {
+            octave = letter === "a" || letter === "b" ? "3" : "4";
+        } else if (letter === "a" || letter === "b") {
+            octave = "4";
+        }
+        return `${letter}/${octave}`;
+    }
+
+    /** A circle and a number for each note that carries a harmonic element. */
+    private drawHarmonics(staffLine: StaffLine): void {
+        for (const measure of staffLine.Measures) {
+            if (measure.IsExtraGraphicalMeasure) {
+                continue;
+            }
+            for (const staffEntry of measure.staffEntries) {
+                for (const gve of staffEntry.graphicalVoiceEntries) {
+                    for (const gNote of gve.notes) {
+                        const harmonic: NoteHarmonic = gNote.sourceNote?.Harmonic;
+                        if (!harmonic) {
+                            continue;
+                        }
+                        const vfPair: any = (gNote as VexFlowGraphicalNote).vfnote;
+                        const vfnote: any = vfPair?.[0];
+                        if (!vfnote || typeof vfnote.getAbsoluteX !== "function" || typeof vfnote.getYs !== "function") {
+                            continue;
+                        }
+                        const x: number = vfnote.getAbsoluteX();
+                        if (!this.lazyDrawsAtX(x)) {
+                            continue;
+                        }
+                        const ys: number[] = vfnote.getYs();
+                        const index: number = vfPair[1] ?? 0;
+                        const noteY: number = ys[index] ?? ys[0];
+                        if (!Number.isFinite(noteY)) {
+                            continue;
+                        }
+                        const context: any = this.backend.getContext();
+                        const group: any = context.openGroup("harmonic");
+                        if (group?.setAttribute) {
+                            group.setAttribute("data-number", harmonic.number ?? "");
+                            group.setAttribute("data-kind", harmonic.kind ?? "");
+                        }
+                        (VF.Glyph as any).renderGlyph(context, x, noteY - 18, 30, "vb9");
+                        if (harmonic.number && typeof context.fillText === "function") {
+                            context.save();
+                            context.setFont("Times New Roman", 14, "normal");
+                            context.fillText(harmonic.number, x + 12, noteY - 14);
+                            context.restore();
+                        }
+                        context.closeGroup();
+                    }
+                }
+            }
+        }
     }
 
     /** Shaft from tailY to tipY, with the head at tipY. downHead selects the head direction. */
@@ -1100,7 +1285,9 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
             return; // lazy horizontal: the brace is a once-only left-edge element, drawn with the first batch
         }
         const ctx: Vex.IRenderContext = this.backend.getContext();
-        ctx.openGroup("brace");
+        const connector: any = (brace as VexFlowInstrumentBracket).vexflowConnector;
+        const connectorType: number = connector?.type;
+        ctx.openGroup(connectorType === VF.StaveConnector.type.BRACKET ? "bracket" : "brace");
         // Draw InstrumentBrackets at beginning of line
         const vexBrace: VexFlowInstrumentBrace = (brace as VexFlowInstrumentBrace);
         vexBrace.draw(ctx);

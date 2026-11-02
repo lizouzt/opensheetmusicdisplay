@@ -13,6 +13,8 @@ export class ChordSymbolContainer {
     private degrees: Degree[];
     private rules: EngravingRules;
     public Placement: PlacementEnum;
+    /** MusicXML harmony@system: only-top, only-bottom, also-top, also-bottom, or none. */
+    public SystemRelation: string;
 
     constructor(
         rootPitch: Pitch,

@@ -41,6 +41,9 @@ import { VexFlowConverter } from "./VexFlowConverter";
 import { VexFlowVibratoBracket } from "./VexFlowVibratoBracket";
 import { TremoloBetweenNotes } from "../../VoiceData/Note";
 import { BendShape, NoteBend } from "../../VoiceData/NoteBend";
+import { Arpeggio, ArpeggioType } from "../../VoiceData/Arpeggio";
+import { VexFlowVoiceEntry } from "./VexFlowVoiceEntry";
+import { Fraction } from "../../../Common/DataObjects/Fraction";
 import { SkyBottomLineCalculator } from "../SkyBottomLineCalculator";
 
 /**
@@ -142,6 +145,7 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
             this.drawGlissandi(staffLine as VexFlowStaffLine, absolutePos);
         }
         this.drawBends(staffLine);
+        this.drawUnbrokenArpeggioBridges(staffLine);
         ctx.closeGroup();
     }
 
@@ -273,6 +277,128 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
             context.closeGroup();
             x = endX;
         }
+    }
+
+    /**
+     * Continues an unbroken arpeggio across the gap to the next staff of the same part.
+     * Each staff still draws its own VexFlow stroke. This only fills the space between them.
+     */
+    private drawUnbrokenArpeggioBridges(staffLine: StaffLine): void {
+        if (staffLine.ParentStaff?.isTab) {
+            return;
+        }
+        const system: MusicSystem = staffLine.ParentMusicSystem;
+        const index: number = system?.StaffLines.indexOf(staffLine) ?? -1;
+        // The staff above has already been drawn, so both staves' note ys are in page coordinates.
+        const upperLine: StaffLine = index > 0 ? system.StaffLines[index - 1] : undefined;
+        if (!upperLine || upperLine.ParentStaff?.ParentInstrument !== staffLine.ParentStaff?.ParentInstrument) {
+            return;
+        }
+        for (const measure of staffLine.Measures) {
+            const upperMeasure: GraphicalMeasure = upperLine.Measures.find(
+                (candidate: GraphicalMeasure): boolean => candidate.parentSourceMeasure === measure.parentSourceMeasure);
+            if (!upperMeasure) {
+                continue;
+            }
+            for (const staffEntry of measure.staffEntries) {
+                const entryRight: number = staffEntry.PositionAndShape.AbsolutePosition.x + staffEntry.PositionAndShape.BorderRight;
+                if (!this.lazyDrawsAtX(entryRight)) {
+                    continue;
+                }
+                for (const voiceEntry of staffEntry.graphicalVoiceEntries) {
+                    this.drawArpeggioBridge(voiceEntry as VexFlowVoiceEntry, upperMeasure);
+                }
+            }
+        }
+    }
+
+    /** `lower` is the voice entry on the staff being drawn. `upperMeasure` is the staff above it. */
+    private drawArpeggioBridge(lower: VexFlowVoiceEntry, upperMeasure: GraphicalMeasure): void {
+        const arpeggio: Arpeggio = lower.parentVoiceEntry?.Arpeggio;
+        if (!arpeggio?.Unbroken || lower.notes.length < 2) {
+            return;
+        }
+        const timestamp: Fraction = lower.parentStaffEntry?.sourceStaffEntry?.VerticalContainerParent?.Timestamp;
+        let upper: VexFlowVoiceEntry = undefined;
+        for (const staffEntry of upperMeasure.staffEntries) {
+            if (!timestamp || !staffEntry.sourceStaffEntry?.VerticalContainerParent?.Timestamp?.Equals(timestamp)) {
+                continue;
+            }
+            for (const voiceEntry of staffEntry.graphicalVoiceEntries) {
+                const other: Arpeggio = voiceEntry.parentVoiceEntry?.Arpeggio;
+                if (other?.Unbroken && other.Number === arpeggio.Number && voiceEntry.notes.length >= 2) {
+                    upper = voiceEntry as VexFlowVoiceEntry;
+                    break;
+                }
+            }
+            if (upper) {
+                break;
+            }
+        }
+        if (!upper) {
+            return;
+        }
+        const upperSpan: { x: number, top: number, bottom: number, step: number } =
+            this.arpeggioSpan(upper, upper.parentVoiceEntry.Arpeggio.type);
+        const lowerSpan: { x: number, top: number, bottom: number, step: number } =
+            this.arpeggioSpan(lower, arpeggio.type);
+        if (!upperSpan || !lowerSpan) {
+            return;
+        }
+        const lastUpper: number = upperSpan.top + Math.floor((upperSpan.bottom - upperSpan.top) / upperSpan.step + 1e-6) * upperSpan.step;
+        const ys: number[] = [];
+        for (let y: number = lastUpper + upperSpan.step; y < lowerSpan.top - upperSpan.step * 0.4; y += upperSpan.step) {
+            ys.push(y);
+        }
+        if (ys.length === 0) {
+            return;
+        }
+        const context: any = this.backend.getContext();
+        const noteId: string = (lower.notes[0] as VexFlowGraphicalNote)?.getSVGId();
+        context.openGroup("unbrokenarpeggio", noteId ? `${noteId}-unbroken` : undefined);
+        for (const y of ys) {
+            (VF.Glyph as any).renderGlyph(context, upperSpan.x, y, 38, "va3");
+        }
+        context.closeGroup();
+    }
+
+    /** The same top, bottom and x VexFlow's directionless or arrowed squiggle uses. Brush strokes are not continued. */
+    private arpeggioSpan(voiceEntry: VexFlowVoiceEntry, type: ArpeggioType): { x: number, top: number, bottom: number, step: number } | undefined {
+        const vfnote: any = voiceEntry.vfStaveNote;
+        if (!vfnote || typeof vfnote.getYs !== "function" || typeof vfnote.getModifiers !== "function") {
+            return undefined;
+        }
+        const stroke: any = (vfnote.getModifiers() as any[]).find((modifier: any): boolean => modifier?.getCategory?.() === "strokes");
+        if (!stroke || typeof vfnote.getModifierStartXY !== "function") {
+            return undefined;
+        }
+        const step: number = vfnote.getStave?.()?.options?.spacing_between_lines_px;
+        const ys: number[] = vfnote.getYs();
+        if (!Number.isFinite(step) || step <= 0 || !ys || ys.length < 2) {
+            return undefined;
+        }
+        let top: number = Math.min(...ys);
+        let bottom: number = Math.max(...ys);
+        if (type === ArpeggioType.ARPEGGIO_DIRECTIONLESS) {
+            top += 0.5 * step;
+            bottom += step;
+        } else if (type === ArpeggioType.ROLL_DOWN || type === ArpeggioType.RASQUEDO_DOWN) {
+            top += 1.5 * step;
+            bottom += ((bottom - top) % 2 !== 0) ? 0.5 * step : step;
+        } else if (type === ArpeggioType.ROLL_UP || type === ArpeggioType.RASQUEDO_UP) {
+            top += 0.5 * step;
+            if ((bottom - top) % 2 === 0) {
+                bottom += step / 2;
+            }
+        } else {
+            return undefined;
+        }
+        const start: { x: number } = vfnote.getModifierStartXY(stroke.getPosition?.() ?? VF.Modifier.Position.LEFT, stroke.getIndex?.() ?? 0);
+        if (!start || !Number.isFinite(start.x)) {
+            return undefined;
+        }
+        const xShift: number = typeof stroke.getXShift === "function" ? stroke.getXShift() : 0;
+        return { x: start.x - 5 + xShift - 4, top, bottom, step };
     }
 
     private drawGlissandi(vfStaffLine: VexFlowStaffLine, absolutePos: PointF2D): void {

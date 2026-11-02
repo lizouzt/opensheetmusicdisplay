@@ -44,6 +44,7 @@ import { BendShape, NoteBend } from "../../VoiceData/NoteBend";
 import { Arpeggio, ArpeggioType } from "../../VoiceData/Arpeggio";
 import { VexFlowVoiceEntry } from "./VexFlowVoiceEntry";
 import { Fraction } from "../../../Common/DataObjects/Fraction";
+import { StaffDivideType } from "../../VoiceData/StaffDivide";
 import { SkyBottomLineCalculator } from "../SkyBottomLineCalculator";
 
 /**
@@ -146,6 +147,7 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
         }
         this.drawBends(staffLine);
         this.drawUnbrokenArpeggioBridges(staffLine);
+        this.drawStaffDivides(staffLine);
         ctx.closeGroup();
     }
 
@@ -399,6 +401,69 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
         }
         const xShift: number = typeof stroke.getXShift === "function" ? stroke.getXShift() : 0;
         return { x: start.x - 5 + xShift - 4, top, bottom, step };
+    }
+
+    /**
+     * A staff-divide arrow at the right end of the measure that declares it.
+     * The SMuFL divider glyphs are not in the font, so this is a plain arrow.
+     */
+    private drawStaffDivides(staffLine: StaffLine): void {
+        const staffIndex: number = staffLine.ParentStaff?.idInMusicSheet;
+        if (staffIndex === undefined) {
+            return;
+        }
+        for (const measure of staffLine.Measures) {
+            if (measure.IsExtraGraphicalMeasure) {
+                continue;
+            }
+            const divideType: string = measure.parentSourceMeasure?.getStaffDivide(staffIndex);
+            if (!divideType) {
+                continue;
+            }
+            const stave: any = (measure as any).stave;
+            if (!stave || typeof stave.getX !== "function" || typeof stave.getYForLine !== "function") {
+                continue;
+            }
+            const endX: number = stave.getX() + stave.getWidth();
+            if (!this.lazyDrawsAtX(endX)) {
+                continue;
+            }
+            const lineCount: number = typeof stave.getNumLines === "function" ? stave.getNumLines() : 5;
+            const midY: number = stave.getYForLine((lineCount - 1) / 2);
+            const color: string = measure.parentSourceMeasure.getStaffDivideColor(staffIndex) ?? "#000000";
+            this.drawStaffDivideArrow(endX - 8, midY, divideType, color, measure.MeasureNumber);
+        }
+    }
+
+    private drawStaffDivideArrow(x: number, midY: number, divideType: string, color: string, measureNumber: number): void {
+        const context: any = this.backend.getContext();
+        const group: any = context.openGroup("staffdivide", `staffdivide-${measureNumber}`);
+        if (group?.setAttribute) {
+            group.setAttribute("data-type", divideType);
+        }
+        context.beginPath();
+        if (divideType === StaffDivideType.Down) {
+            this.traceArrow(context, x, midY - 7, midY + 11, true);
+        } else if (divideType === StaffDivideType.Up) {
+            this.traceArrow(context, x, midY + 7, midY - 11, false);
+        } else {
+            this.traceArrow(context, x, midY + 11, midY - 11, false);
+            this.traceArrow(context, x, midY - 11, midY + 11, true);
+        }
+        context.setLineWidth(1.2);
+        context.setStrokeStyle(color);
+        context.stroke();
+        context.closeGroup();
+    }
+
+    /** Shaft from tailY to tipY, with the head at tipY. downHead selects the head direction. */
+    private traceArrow(context: any, x: number, tailY: number, tipY: number, downHead: boolean): void {
+        context.moveTo(x, tailY);
+        context.lineTo(x, tipY);
+        const headY: number = downHead ? tipY - 5 : tipY + 5;
+        context.moveTo(x - 4, headY);
+        context.lineTo(x, tipY);
+        context.lineTo(x + 4, headY);
     }
 
     private drawGlissandi(vfStaffLine: VexFlowStaffLine, absolutePos: PointF2D): void {

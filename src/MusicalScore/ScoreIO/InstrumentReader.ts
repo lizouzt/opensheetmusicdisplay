@@ -272,22 +272,23 @@ export class InstrumentReader {
               // if (!currentMeasure.multipleRestMeasuresPerStaff) {
               //   currentMeasure.multipleRestMeasuresPerStaff = new Dictionary<number, number>();
               // }
-              const multipleRestValueXml: string = multipleRest.value;
-              let multipleRestNumber: number = 0;
-              try {
-                multipleRestNumber = Number.parseInt(multipleRestValueXml, 10);
-                if (currentMeasure.multipleRestMeasures !== undefined && multipleRestNumber !== currentMeasure.multipleRestMeasures) {
-                  // different multi-rest values in same measure for different staffs
-                  currentMeasure.multipleRestMeasures = 0; // for now, ignore multirest here. TODO: take minimum
-                  // currentMeasure.multipleRestMeasuresPerStaff.setValue(this.currentStaff?.Id, multipleRestNumber);
-                  //   issue: currentStaff can be undefined for first measure
-                } else {
-                  currentMeasure.multipleRestMeasures = multipleRestNumber;
-                  this.currentMultirestStartMeasure = currentMeasure;
-                  this.followingMultirestMeasures = multipleRestNumber + 1; // will be decremented at the start of the loop
-                }
-              } catch (e) {
-                console.log("multirest parse error: " + e);
+              // MusicXML 4.0 no longer allows an empty <multiple-rest>. parseInt does not throw, so check the text.
+              const multipleRestText: string = (multipleRest.value ?? "").trim();
+              const multipleRestNumber: number = Number.parseInt(multipleRestText, 10);
+              if (!/^[0-9]+$/.test(multipleRestText) || multipleRestNumber <= 0) {
+                log.warn(
+                  "InstrumentReader.readNextXmlMeasure",
+                  "MusicXML <multiple-rest> is empty or not a positive integer. Ignoring it."
+                );
+              } else if (currentMeasure.multipleRestMeasures !== undefined && multipleRestNumber !== currentMeasure.multipleRestMeasures) {
+                // different multi-rest values in same measure for different staffs
+                currentMeasure.multipleRestMeasures = 0; // for now, ignore multirest here. TODO: take minimum
+                // currentMeasure.multipleRestMeasuresPerStaff.setValue(this.currentStaff?.Id, multipleRestNumber);
+                //   issue: currentStaff can be undefined for first measure
+              } else {
+                currentMeasure.multipleRestMeasures = multipleRestNumber;
+                this.currentMultirestStartMeasure = currentMeasure;
+                this.followingMultirestMeasures = multipleRestNumber + 1; // will be decremented at the start of the loop
               }
             }
           }
@@ -1106,6 +1107,12 @@ export class InstrumentReader {
         const signNode: IXmlElement = nodeList.element("sign");
         if (signNode) {
           try {
+            if (signNode.value === "none") {
+              log.warn(
+                "InstrumentReader.addAbstractInstruction",
+                "MusicXML clef sign \"none\" is deprecated. Using default."
+              );
+            }
             clefEnum = ClefEnum[signNode.value];
             if (!ClefInstruction.isSupportedClef(clefEnum)) {
               errorMsg = ITextTranslation.translateText(

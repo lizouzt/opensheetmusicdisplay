@@ -991,6 +991,11 @@ export class InstrumentReader {
         this.instrument.PlaybackTranspose =
           (isNaN(chromatic) ? 0 : chromatic) + 12 * (isNaN(octaveChange) ? 0 : octaveChange);
       }
+      // <double> is an extra sounding note one octave from the written pitch, not a shift of the written note.
+      // above="yes" is above; otherwise (including a missing attribute) it is below. A later transpose without
+      // <double> clears an earlier doubling.
+      const doubleNode: IXmlElement = transposeNode.element("double");
+      this.instrument.PlaybackDoubling = doubleNode?.attribute("above")?.value === "yes" ? 12 : (doubleNode ? -12 : 0);
     }
     const clefList: IXmlElement[] = attrNode.elements("clef");
     let errorMsg: string;

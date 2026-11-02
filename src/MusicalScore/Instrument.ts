@@ -31,6 +31,8 @@ export class Instrument extends InstrumentalGroup {
     private hasLyrics: boolean = false;
     private hasChordSymbols: boolean = false;
     private playbackTranspose: number;
+    /** Extra sounding note from MusicXML <double>, in semitones from the written pitch. 0 means no doubling. */
+    private playbackDoubling: number = 0;
 
     private lyricVersesNumbers: string[] = [];
     private subInstruments: SubInstrument[] = [];
@@ -96,6 +98,17 @@ export class Instrument extends InstrumentalGroup {
     }
     public set PlaybackTranspose(value: number) {
         this.playbackTranspose = value;
+    }
+    /**
+     * Semitones of the extra sounding note from MusicXML &lt;double&gt;.
+     * +12 is one octave above the written pitch, -12 one octave below. 0 means the part is not doubled.
+     * The written staff is unchanged. A playback consumer adds PlaybackTranspose to both the written note and this doubling.
+     */
+    public get PlaybackDoubling(): number {
+        return this.playbackDoubling;
+    }
+    public set PlaybackDoubling(value: number) {
+        this.playbackDoubling = value;
     }
 
     public get SubInstruments(): SubInstrument[] {

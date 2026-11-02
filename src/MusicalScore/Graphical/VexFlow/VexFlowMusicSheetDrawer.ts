@@ -317,7 +317,7 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
     /** `lower` is the voice entry on the staff being drawn. `upperMeasure` is the staff above it. */
     private drawArpeggioBridge(lower: VexFlowVoiceEntry, upperMeasure: GraphicalMeasure): void {
         const arpeggio: Arpeggio = lower.parentVoiceEntry?.Arpeggio;
-        if (!arpeggio?.Unbroken || lower.notes.length < 2) {
+        if (!arpeggio?.Unbroken || lower.notes.length < 1 || this.isBrushArpeggio(arpeggio.type)) {
             return;
         }
         const timestamp: Fraction = lower.parentStaffEntry?.sourceStaffEntry?.VerticalContainerParent?.Timestamp;
@@ -328,7 +328,8 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
             }
             for (const voiceEntry of staffEntry.graphicalVoiceEntries) {
                 const other: Arpeggio = voiceEntry.parentVoiceEntry?.Arpeggio;
-                if (other?.Unbroken && other.Number === arpeggio.Number && voiceEntry.notes.length >= 2) {
+                if (other?.Unbroken && other.Number === arpeggio.Number && voiceEntry.notes.length >= 1
+                    && !this.isBrushArpeggio(other.type)) {
                     upper = voiceEntry as VexFlowVoiceEntry;
                     break;
                 }
@@ -340,17 +341,31 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
         if (!upper) {
             return;
         }
-        const upperSpan: { x: number, top: number, bottom: number, step: number } =
-            this.arpeggioSpan(upper, upper.parentVoiceEntry.Arpeggio.type);
-        const lowerSpan: { x: number, top: number, bottom: number, step: number } =
-            this.arpeggioSpan(lower, arpeggio.type);
-        if (!upperSpan || !lowerSpan) {
+        const upperType: ArpeggioType = upper.parentVoiceEntry.Arpeggio.type;
+        const upperSpan: { x: number, top: number, bottom: number, step: number } = this.arpeggioSpan(upper, upperType);
+        const lowerSpan: { x: number, top: number, bottom: number, step: number } = this.arpeggioSpan(lower, arpeggio.type);
+        const upperNote: { x: number, glyphY: number, step: number } = upperSpan ? undefined : this.singleNoteArpeggioPoint(upper, upperType);
+        const lowerNote: { x: number, glyphY: number, step: number } = lowerSpan ? undefined : this.singleNoteArpeggioPoint(lower, arpeggio.type);
+        if ((!upperSpan && !upperNote) || (!lowerSpan && !lowerNote)) {
             return;
         }
-        const lastUpper: number = upperSpan.top + Math.floor((upperSpan.bottom - upperSpan.top) / upperSpan.step + 1e-6) * upperSpan.step;
+        const step: number = upperSpan?.step ?? upperNote.step;
+        const x: number = (upperSpan ?? lowerSpan)?.x ?? upperNote.x;
         const ys: number[] = [];
-        for (let y: number = lastUpper + upperSpan.step; y < lowerSpan.top - upperSpan.step * 0.4; y += upperSpan.step) {
-            ys.push(y);
+        if (upperSpan && lowerSpan) {
+            const lastUpper: number = upperSpan.top + Math.floor((upperSpan.bottom - upperSpan.top) / step + 1e-6) * step;
+            for (let y: number = lastUpper + step; y < lowerSpan.top - step * 0.4; y += step) {
+                ys.push(y);
+            }
+        } else {
+            // A staff with one note has no VexFlow stroke, so the column includes that note, not only the gap.
+            const startY: number = upperSpan
+                ? upperSpan.top + Math.floor((upperSpan.bottom - upperSpan.top) / step + 1e-6) * step + step
+                : upperNote.glyphY;
+            const limit: number = lowerSpan ? lowerSpan.top - step * 0.4 : lowerNote.glyphY;
+            for (let y: number = startY; lowerSpan ? y < limit : y <= limit + 1e-6; y += step) {
+                ys.push(y);
+            }
         }
         if (ys.length === 0) {
             return;
@@ -359,9 +374,39 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
         const noteId: string = (lower.notes[0] as VexFlowGraphicalNote)?.getSVGId();
         context.openGroup("unbrokenarpeggio", noteId ? `${noteId}-unbroken` : undefined);
         for (const y of ys) {
-            (VF.Glyph as any).renderGlyph(context, upperSpan.x, y, 38, "va3");
+            (VF.Glyph as any).renderGlyph(context, x, y, 38, "va3");
         }
         context.closeGroup();
+    }
+
+    private isBrushArpeggio(type: ArpeggioType): boolean {
+        return type === ArpeggioType.BRUSH_DOWN || type === ArpeggioType.BRUSH_UP;
+    }
+
+    /** Glyph position for one note. VexFlow draws no stroke unless the voice entry has two notes. */
+    private singleNoteArpeggioPoint(voiceEntry: VexFlowVoiceEntry, type: ArpeggioType): { x: number, glyphY: number, step: number } | undefined {
+        const vfnote: any = voiceEntry.vfStaveNote;
+        if (!vfnote || typeof vfnote.getYs !== "function" || typeof vfnote.getModifierStartXY !== "function") {
+            return undefined;
+        }
+        const step: number = vfnote.getStave?.()?.options?.spacing_between_lines_px;
+        const ys: number[] = vfnote.getYs();
+        if (!Number.isFinite(step) || step <= 0 || !ys || ys.length < 1) {
+            return undefined;
+        }
+        let glyphY: number = Math.min(...ys);
+        if (type === ArpeggioType.ARPEGGIO_DIRECTIONLESS || type === ArpeggioType.ROLL_UP || type === ArpeggioType.RASQUEDO_UP) {
+            glyphY += 0.5 * step;
+        } else if (type === ArpeggioType.ROLL_DOWN || type === ArpeggioType.RASQUEDO_DOWN) {
+            glyphY += 1.5 * step;
+        } else {
+            return undefined;
+        }
+        const start: { x: number } = vfnote.getModifierStartXY(VF.Modifier.Position.LEFT, 0);
+        if (!start || !Number.isFinite(start.x)) {
+            return undefined;
+        }
+        return { x: start.x - 5 - 4, glyphY, step };
     }
 
     /** The same top, bottom and x VexFlow's directionless or arrowed squiggle uses. Brush strokes are not continued. */

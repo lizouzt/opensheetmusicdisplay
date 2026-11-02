@@ -60,8 +60,27 @@ export class SourceMeasure {
     public endingBarStyleEnum: SystemLinesEnum;
     /** Whether the MusicXML says to print a new system (line break). See OSMDOptions.newSystemFromXML */
     public printNewSystemXml: boolean = false;
+    /** MusicXML staff-divide on each global staff. Absent when that staff has no divider. */
+    private staffDivides: string[] = [];
+    private staffDivideColors: string[] = [];
     /** Whether the MusicXML says to print a new page (page break). See OSMDOptions.newPageFromXML */
     public printNewPageXml: boolean = false;
+
+    public setStaffDivide(staffIndex: number, type: string, color?: string): void {
+        this.staffDivides[staffIndex] = type;
+        if (color) {
+            this.staffDivideColors[staffIndex] = color;
+        }
+    }
+
+    public getStaffDivide(staffIndex: number): string {
+        return this.staffDivides[staffIndex];
+    }
+
+    public getStaffDivideColor(staffIndex: number): string {
+        return this.staffDivideColors[staffIndex];
+    }
+
     public IsSystemStartMeasure: boolean = false;
     /** The graphical measure width will be multiplied by this factor.
      * E.g. factor 0.6 = 60% will make the measure only 60% as long as before.

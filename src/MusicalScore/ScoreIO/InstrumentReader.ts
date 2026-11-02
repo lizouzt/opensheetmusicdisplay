@@ -30,6 +30,7 @@ import { SystemLinesEnumHelper } from "../Graphical/SystemLinesEnum";
 import { EngravingRules } from "../Graphical/EngravingRules";
 import { ReaderPluginManager } from "./ReaderPluginManager";
 import { TremoloInfo } from "../VoiceData/Note";
+import { StaffDivideType } from "../VoiceData/StaffDivide";
 // import {Dictionary} from "typescript-collections";
 
 // FIXME: The following classes are missing
@@ -192,6 +193,14 @@ export class InstrumentReader {
           const newPageAttr: IXmlAttribute = xmlNode.attribute("new-page");
           if (newPageAttr?.value === "yes") {
             currentMeasure.printNewPageXml = true;
+          }
+          const staffDivideNode: IXmlElement = xmlNode.element("staff-divide");
+          const staffDivideType: string = staffDivideNode?.attribute("type")?.value;
+          if (staffDivideType === StaffDivideType.Down || staffDivideType === StaffDivideType.Up
+              || staffDivideType === StaffDivideType.UpDown) {
+            const colorValue: string = staffDivideNode.attribute("color")?.value ?? "";
+            const hexColor: string = /^#[0-9A-Fa-f]{6}$/.test(colorValue) ? colorValue : undefined;
+            currentMeasure.setStaffDivide(this.inSourceMeasureInstrumentIndex, staffDivideType, hexColor);
           }
           this.readMeasureNumbering(xmlNode);
         } else if (xmlNode.name === "attributes") {

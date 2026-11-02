@@ -1,6 +1,6 @@
 # MusicXML 4.0 / 4.1 支持矩阵
 
-阶段 2 的运行时结论。WP-1、WP-3、WP-4、WP-5，以及 WP-6 里 part name、首小节 ending、number-level 16、`<line-detail>`、`enclosure="inverted-bracket"` 和 `<double above>`，已按实现后的结果改过。除这些以外，引擎是 OSMD `2.2.1-dev` 提交 `a308225e`。打包三行在 `eea91c1f`（WP-1）上用单元测试重测。踏板两行在 `ac248c9d`（WP-3）上用单元测试和 SVG 重测。级数和弦在 `d299b30b`（WP-4）上用单元测试和 SVG 重测。小节号四行在 `609bb261`（WP-5）上用单元测试和 SVG 重测。part name、ending 和 number-level 16 在 `0e39ecc6` 上用单元测试和 SVG 重测。`<line-detail>` 在 `02913a25` 上用单元测试和 SVG 重测。`enclosure="inverted-bracket"` 在 `82cde76d` 上用单元测试和 SVG 重测。`<double above>` 在 `3d27d383` 上用单元测试重测，谱面没有改。WP-6 的其余行仍是原来的结论。
+阶段 2 的运行时结论。WP-1、WP-3、WP-4、WP-5，以及 WP-6 里 part name、首小节 ending、number-level 16、`<line-detail>`、`enclosure="inverted-bracket"`、`<double above>`，以及 `direction` / `harmony` 的 `system`，已按实现后的结果改过。除这些以外，引擎是 OSMD `2.2.1-dev` 提交 `a308225e`。打包三行在 `eea91c1f`（WP-1）上用单元测试重测。踏板两行在 `ac248c9d`（WP-3）上用单元测试和 SVG 重测。级数和弦在 `d299b30b`（WP-4）上用单元测试和 SVG 重测。小节号四行在 `609bb261`（WP-5）上用单元测试和 SVG 重测。part name、ending 和 number-level 16 在 `0e39ecc6` 上用单元测试和 SVG 重测。`<line-detail>` 在 `02913a25` 上用单元测试和 SVG 重测。`enclosure="inverted-bracket"` 在 `82cde76d` 上用单元测试和 SVG 重测。`<double above>` 在 `3d27d383` 上用单元测试重测，谱面没有改。`direction` 和 `harmony` 的 `system` 在 `0a22f894` 上用单元测试重测，单谱表测试谱的画面没有改。WP-6 的其余行仍是原来的结论。
 
 ## 怎么测的
 
@@ -8,7 +8,7 @@
 - 测试文件由本项目编写，放在 `test/data/test_mxl4_*`。`version` 为 `4.0` 或 `4.1`，预期渲染写在 `<identification><miscellaneous>`。2026-10-15 用 `xmllint --nonet --schema` 校验：全部 `test_mxl4_*.musicxml` 通过 `musicxml.xsd`；`test_mxl4_packaging.mxl` 里的 `META-INF/container.xml` 通过 `container.xsd`，其中的 `score.musicxml` 与 `P1.musicxml` 通过 `musicxml.xsd`。`mimetype` 是压缩包的第一个条目，存储方式为不压缩，内容为 `application/vnd.recordare.musicxml`。
 - 运行方式：用构建产物 `build/opensheetmusicdisplay.min.js`，在 jsdom 里以 SVG 后端加载并渲染。记录控制台 error/warn、`SheetErrors`、声部移调、和弦文本、踏板与波浪线等表达式、音符上的变音记号、演奏乐器、琶音类型、连线和符干方向。渲染图在 `fork-docs/evidence/`。
 - 空的 `<multiple-rest>` 不能通过 XSD，仓库里只保留内容为 `2` 的合法文件。空元素只在内存中探测，不提交。
-- 判定只用这五档：完整支持、部分支持、不支持、忽略但不报错、报错。完整支持目前包括 `<metronome print-object>` 的印刷行为、多个 rootfile 时选中第一份 MusicXML、踏板 `discontinue` / `resume`、级数和弦的排列、低音分隔和弃用的 `<function>`、`<measure-numbering>` 的四种属性、`credit-type` 为 `part name`、从第 1 小节开始的 ending，编号到 16 的连线、`<line-detail>` 的隐藏、颜色和线宽、`enclosure="inverted-bracket"`，以及 `<double above>` 的八度重叠。明细见文末汇总。
+- 判定只用这五档：完整支持、部分支持、不支持、忽略但不报错、报错。完整支持目前包括 `<metronome print-object>` 的印刷行为、多个 rootfile 时选中第一份 MusicXML、踏板 `discontinue` / `resume`、级数和弦的排列、低音分隔和弃用的 `<function>`、`<measure-numbering>` 的四种属性、`credit-type` 为 `part name`、从第 1 小节开始的 ending，编号到 16 的连线、`<line-detail>` 的隐藏、颜色和线宽、`enclosure="inverted-bracket"`、`<double above>` 的八度重叠，以及 `direction` / `harmony` 的 `system`。明细见文末汇总。
 
 版权：这些文件是本项目自写的最小乐谱，按 `SAMPLE_COPYRIGHT_AUDIT.md` 为 A 级。没有复制受版权保护的乐谱。
 
@@ -83,9 +83,9 @@
 | `<timpani smufl>` | [timpani](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/timpani/)，[Issue 403](https://github.com/w3c-cg/musicxml/issues/403) | `test/data/test_mxl4_percussion_smufl.musicxml` | 忽略但不报错 | `pictTimpani` 未出现。 | WP-6 |
 | `<wood smufl>` | [wood](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/wood/)，[Issue 403](https://github.com/w3c-cg/musicxml/issues/403) | `test/data/test_mxl4_percussion_smufl.musicxml` | 忽略但不报错 | `pictWoodBlock` 未出现。 | WP-6 |
 | `<wavy-line smufl>` | [wavy-line](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/wavy-line/)，[Issue 397](https://github.com/w3c-cg/musicxml/issues/397) | `test/data/test_mxl4_wavy_line_smufl.musicxml` | 部分支持 | 颤音波浪线有起点和终点，谱表上方有一条二次曲线波浪。表达式对象没有 `smufl` 字段，`wiggleTrill` 没有被选用；画出的是原有默认波浪。[evidence](evidence/test_mxl4_wavy_line_smufl.svg) | WP-6 |
-| `<direction system>` | [direction](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/direction/)，[Issue 37](https://github.com/w3c-cg/musicxml/issues/37) | `test/data/test_mxl4_system_attribute.musicxml` | 忽略但不报错 | “Solo” 按原有方式画出。只有一个系统，看不出 `only-top` 与默认有什么差别，模型里也没有该属性。[evidence](evidence/test_mxl4_system_attribute.svg) | WP-6 |
+| `<direction system>` | [direction](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/direction/)，[Issue 37](https://github.com/w3c-cg/musicxml/issues/37) | `test/data/test_mxl4_system_attribute.musicxml`；断言在 `SystemRelation_Test.ts` | 完整支持 | `only-top` 放到这个声部的最上谱表，`only-bottom` 放到最下谱表。单谱表测试谱上 “Solo” 仍在原处，`SystemRelation` 为 `only-top`。`also-top`、`also-bottom` 和 `none` 留在 `<staff>` 指定的谱表，不画第二次，也不搬到另一个乐器。[evidence](evidence/test_mxl4_system_attribute.svg) | WP-6 |
 | `<ending system>` | [ending](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/ending/)，[Issue 37](https://github.com/w3c-cg/musicxml/issues/37) | `test/data/test_mxl4_system_attribute.musicxml`；断言在 `CreditAndEnding_Test.ts` | 完整支持 | 第 1 小节的 ending 起点被保存，对齐是 Begin，`SystemRelation` 为 `only-top`，编号是 1。SVG 文本含 “1”，不再出现 `LastRepetitionInstructions` 的 TypeError。单谱表上 `only-top` 就是最上谱表。`only-bottom` 和 `also-*` 这一片还不改位置。[evidence](evidence/test_mxl4_system_attribute.svg) | WP-6 |
-| `<harmony system>` | [harmony](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/harmony/)，[Issue 37](https://github.com/w3c-cg/musicxml/issues/37) | `test/data/test_mxl4_system_attribute.musicxml` | 忽略但不报错 | 和弦文本 “C” 画出。`system` 没有单独存储；单系统文件上看不出 only-top。 | WP-6 |
+| `<harmony system>` | [harmony](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/harmony/)，[Issue 37](https://github.com/w3c-cg/musicxml/issues/37) | `test/data/test_mxl4_system_attribute.musicxml`；断言在 `SystemRelation_Test.ts` | 完整支持 | `only-top` 放到这个声部的最上谱表，`only-bottom` 放到最下谱表。单谱表测试谱上和弦 “C” 仍在原处，`SystemRelation` 为 `only-top`。`also-top`、`also-bottom` 和 `none` 留在 `<staff>` 指定的谱表，不画第二次，也不搬到另一个乐器。[evidence](evidence/test_mxl4_system_attribute.svg) | WP-6 |
 | `<inversion text>` | [inversion](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/inversion/)，[Issue 295](https://github.com/w3c-cg/musicxml/issues/295) | `test/data/test_mxl4_numeral.musicxml` | 忽略但不报错 | `text="6"` 不在 SVG 中。绘制结果只有 “V”。 | WP-4 |
 | `<level type>` | [level](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/level/)，[Issue 288](https://github.com/w3c-cg/musicxml/issues/288) | `test/data/test_mxl4_level_type.musicxml` | 忽略但不报错 | 方向文字 “dolce” 画出。“source A” 和 `type="start"` 都没有出现。[evidence](evidence/test_mxl4_level_type.svg) | WP-6 |
 | `<arpeggiate unbroken>` | [arpeggiate](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/arpeggiate/)，[Issue 281](https://github.com/w3c-cg/musicxml/issues/281) | `test/data/test_mxl4_arpeggiate_unbroken.musicxml` | 部分支持 | 和弦三个音的琶音类型都是 7（无方向）。修饰符路径里有琶音曲线，所以记号本身画了。琶音对象没有 `unbroken` 字段。[evidence](evidence/test_mxl4_arpeggiate_unbroken.svg) | WP-6 |
@@ -139,11 +139,11 @@
 
 | 判定 | 行数 | 说明 |
 |---|---|---|
-| 完整支持 | 24 | `<metronome print-object>`、多个 rootfile 时选中第一份 MusicXML、踏板 `discontinue` / `resume`、级数和弦的十行（含弃用的 `<function>`）、`<measure-numbering>` 的四行、`part name` credit、从第 1 小节开始的 ending、编号 16 的连线、`<line-detail>`、`enclosure="inverted-bracket"`，以及 `<double above>` |
+| 完整支持 | 26 | `<metronome print-object>`、多个 rootfile 时选中第一份 MusicXML、踏板 `discontinue` / `resume`、级数和弦的十行（含弃用的 `<function>`）、`<measure-numbering>` 的四行、`part name` credit、从第 1 小节开始的 ending、编号 16 的连线、`<line-detail>`、`enclosure="inverted-bracket"`、`<double above>`，以及 `direction` / `harmony` 的 `system` |
 | 部分支持 | 8 | 多乐器、波浪线、琶音、谱号 none、多声部符号、多个变音记号，以及两行 `<part-link>` |
 | 不支持 | 3 | 数字低音的三个对齐属性 |
-| 忽略但不报错 | 40 | 文件能加载，新数据没有进入模型或画面，也没有控制台错误 |
+| 忽略但不报错 | 38 | 文件能加载，新数据没有进入模型或画面，也没有控制台错误 |
 | 报错 | 1 | `score-timewise` 被拒绝 |
 | 不适用 | 3 | XML catalog，以及 DTD 换 XSD（打包和弃用各一行，是同一件事） |
 
-WP-1 已在 `feat/mxl4-packaging` 实现，WP-3 已在 `feat/mxl4-pedal` 实现，WP-4 已在 `feat/mxl4-numeral` 实现，WP-5 已在 `feat/mxl4-measure-numbering` 实现，WP-6 的 part name、首小节 ending 和 number-level 16 已在 `feat/mxl4-credit-ending` 实现，`<line-detail>` 已在 `feat/mxl4-line-detail` 实现，`enclosure="inverted-bracket"` 已在 `feat/mxl4-enclosure` 实现，`<double above>` 已在 `feat/mxl4-double-above` 实现，都合并进 `release`。WP-6 其余行（谱表缩放、琶音 unbroken、`direction` / `harmony` 的 `system` 等）还没做。WP-2 与 WP-8 仍要先完成计划里的 H5（向上游开 issue 或 discussion）。GitHub 默认分支已经是 `release`。
+WP-1 已在 `feat/mxl4-packaging` 实现，WP-3 已在 `feat/mxl4-pedal` 实现，WP-4 已在 `feat/mxl4-numeral` 实现，WP-5 已在 `feat/mxl4-measure-numbering` 实现，WP-6 的 part name、首小节 ending 和 number-level 16 已在 `feat/mxl4-credit-ending` 实现，`<line-detail>` 已在 `feat/mxl4-line-detail` 实现，`enclosure="inverted-bracket"` 已在 `feat/mxl4-enclosure` 实现，`<double above>` 已在 `feat/mxl4-double-above` 实现，`direction` / `harmony` 的 `system` 已在 `feat/mxl4-system` 实现，都合并进 `release`。WP-6 其余行（谱表缩放、琶音 unbroken 等）还没做。WP-2 与 WP-8 仍要先完成计划里的 H5（向上游开 issue 或 discussion）。GitHub 默认分支已经是 `release`。

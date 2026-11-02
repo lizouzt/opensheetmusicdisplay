@@ -40,6 +40,7 @@ import { SvgVexFlowBackend } from "./SvgVexFlowBackend";
 import { VexFlowConverter } from "./VexFlowConverter";
 import { VexFlowVibratoBracket } from "./VexFlowVibratoBracket";
 import { TremoloBetweenNotes } from "../../VoiceData/Note";
+import { BendShape, NoteBend } from "../../VoiceData/NoteBend";
 import { SkyBottomLineCalculator } from "../SkyBottomLineCalculator";
 
 /**
@@ -140,6 +141,7 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
         if (this.rules.RenderGlissandi) {
             this.drawGlissandi(staffLine as VexFlowStaffLine, absolutePos);
         }
+        this.drawBends(staffLine);
         ctx.closeGroup();
     }
 
@@ -191,6 +193,86 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
             return true; // couldn't locate the slur at all; don't suppress it
         }
         return this.lazyDrawsAtX(rightX);
+    }
+
+    /** Staff-notation bends. Tab staves keep VexFlow's own bend, so this draws nothing there. */
+    private drawBends(staffLine: StaffLine): void {
+        if (staffLine.ParentStaff?.isTab) {
+            return;
+        }
+        for (const measure of staffLine.Measures) {
+            for (const staffEntry of measure.staffEntries) {
+                const entryRight: number = staffEntry.PositionAndShape.AbsolutePosition.x + staffEntry.PositionAndShape.BorderRight;
+                if (!this.lazyDrawsAtX(entryRight)) {
+                    continue;
+                }
+                for (const voiceEntry of staffEntry.graphicalVoiceEntries) {
+                    for (const graphicalNote of voiceEntry.notes) {
+                        this.drawNoteBends(graphicalNote as VexFlowGraphicalNote);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * A curved bend is one quadratic. An angled bend is two straight segments.
+     * One semitone is half a staff space. A release returns to the written pitch
+     * at ReleaseFraction of this bend's width.
+     */
+    private drawNoteBends(gNote: VexFlowGraphicalNote): void {
+        const bends: NoteBend[] = gNote.sourceNote?.Bends;
+        if (!bends || bends.length === 0 || !gNote.vfnote) {
+            return;
+        }
+        const vfnote: any = gNote.vfnote[0];
+        if (typeof vfnote.getAbsoluteX !== "function" || typeof vfnote.getYs !== "function") {
+            return;
+        }
+        const ys: number[] = vfnote.getYs();
+        const startY: number = ys[gNote.vfnoteIndex];
+        if (!Number.isFinite(startY)) {
+            return;
+        }
+        let x: number = vfnote.getAbsoluteX() + 6;
+        const context: any = this.backend.getContext();
+        const semitonePx: number = unitInPixels / 2;
+        for (let index: number = 0; index < bends.length; index++) {
+            const bend: NoteBend = bends[index];
+            const release: number = bend.ReleaseFraction;
+            const width: number = release === undefined ? 16 : 24;
+            const rise: number = -bend.Alter * semitonePx;
+            const endX: number = x + width;
+            const peakY: number = startY + rise;
+            const group: SVGElement = context.openGroup("bend", gNote.getSVGId() ? `${gNote.getSVGId()}-bend-${index}` : undefined);
+            if (group?.setAttribute) {
+                group.setAttribute("data-shape", bend.Shape);
+                group.setAttribute("data-alter", String(bend.Alter));
+            }
+            context.beginPath();
+            context.moveTo(x, startY);
+            if (bend.Shape === BendShape.Curved) {
+                if (release === undefined) {
+                    context.quadraticCurveTo(x + width * 0.15, peakY, endX, peakY);
+                } else {
+                    const peakX: number = x + width * release;
+                    context.quadraticCurveTo(x, peakY, peakX, peakY);
+                    context.quadraticCurveTo(endX, peakY, endX, startY);
+                }
+            } else if (release === undefined) {
+                context.lineTo(x + width * 0.4, peakY);
+                context.lineTo(endX, peakY);
+            } else {
+                const peakX: number = x + width * release;
+                context.lineTo(peakX, peakY);
+                context.lineTo(endX, startY);
+            }
+            context.setLineWidth(1.2);
+            context.setStrokeStyle("#000000");
+            context.stroke();
+            context.closeGroup();
+            x = endX;
+        }
     }
 
     private drawGlissandi(vfStaffLine: VexFlowStaffLine, absolutePos: PointF2D): void {

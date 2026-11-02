@@ -14,6 +14,7 @@ import {NoteType} from "./NoteType";
 import { SourceMeasure } from "./SourceMeasure";
 import { TechnicalInstruction } from "./Instructions";
 import { Glissando } from "../../MusicalScore/VoiceData/Glissando";
+import { NoteBend } from "./NoteBend";
 
 /**
  * Represents a single pitch with a duration (length)
@@ -113,6 +114,8 @@ export class Note {
      */
     private noteheadColor: string;
     private noteheadColorCurrentlyRendered: string;
+    /** MusicXML technical bends, in document order. Empty when the note has none. */
+    public Bends: NoteBend[] = [];
     public Fingering: TechnicalInstruction; // this is also stored in VoiceEntry.TechnicalInstructions
     public StringInstruction: TechnicalInstruction; // this is also stored in VoiceEntry.TechnicalInstructions
     // note that there is also TabNote.StringNumber, so we can't use that identifier here

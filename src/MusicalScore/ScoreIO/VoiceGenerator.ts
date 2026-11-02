@@ -3,6 +3,7 @@ import { Voice } from "../VoiceData/Voice";
 import { MusicSheet } from "../MusicSheet";
 import { VoiceEntry, StemDirectionType } from "../VoiceData/VoiceEntry";
 import { Note, TremoloBetweenNotes, TremoloInfo } from "../VoiceData/Note";
+import { BendShape, NoteBend } from "../VoiceData/NoteBend";
 import { SourceMeasure } from "../VoiceData/SourceMeasure";
 import { SourceStaffEntry } from "../VoiceData/SourceStaffEntry";
 import { Beam } from "../VoiceData/Beam";
@@ -338,6 +339,42 @@ export class VoiceGenerator {
   }
 
   /**
+   * Reads technical bends. Tab notes keep the previous up/down list.
+   * Every note also stores semitone alter, shape, and a release as a fraction of its duration.
+   * The release offset is in divisions, the same unit as the note's duration.
+   */
+  private readBends(noteNode: IXmlElement, technicalNode: IXmlElement,
+                    tabBends: { bendalter: number, direction: string }[], noteBends: NoteBend[]): void {
+    const durationValue: number = parseFloat(noteNode.element("duration")?.value);
+    for (const bend of technicalNode.elements("bend")) {
+      const bendAlterNode: IXmlElement = bend.element("bend-alter");
+      if (!bendAlterNode) {
+        continue;
+      }
+      const alter: number = parseFloat(bendAlterNode.value);
+      if (!Number.isFinite(alter)) {
+        continue;
+      }
+      const shape: BendShape = bend.attribute("shape")?.value === BendShape.Curved ? BendShape.Curved : BendShape.Angled;
+      const releaseNode: IXmlElement = bend.element("release");
+      let releaseFraction: number = undefined;
+      if (releaseNode) {
+        const offsetValue: number = parseFloat(releaseNode.attribute("offset")?.value);
+        if (Number.isFinite(offsetValue) && Number.isFinite(durationValue) && durationValue > 0) {
+          releaseFraction = Math.min(Math.max(offsetValue / durationValue, 0), 1);
+        } else {
+          releaseFraction = 0;
+        }
+      }
+      noteBends.push(new NoteBend(alter, shape, releaseFraction));
+      tabBends.push({
+        bendalter: parseInt(bendAlterNode.value, 10),
+        direction: releaseNode ? "down" : "up",
+      });
+    }
+  }
+
+  /**
    * Create a new [[Note]] and adds it to the currentVoiceEntry
    * @param node
    * @param noteDuration
@@ -485,6 +522,7 @@ export class VoiceGenerator {
     let stringNumber: number = -1; //1 to always recognize as valid tab note
     let fretNumber: number = -1; //0 to always recognize as valid tab note
     const bends: {bendalter: number, direction: string}[] = [];
+    const noteBends: NoteBend[] = [];
     // check for guitar tabs:
     const notationNode: IXmlElement = node.element("notations");
     if (notationNode) {
@@ -498,16 +536,7 @@ export class VoiceGenerator {
         if (fretNode) {
           fretNumber = parseInt(fretNode.value, 10);
         }
-        const bendElementsArr: IXmlElement[] = technicalNode.elements("bend");
-        bendElementsArr.forEach(function (bend: IXmlElement): void {
-            const bendalterNote: IXmlElement = bend.element("bend-alter");
-            const releaseNode: IXmlElement = bend.element("release");
-            if (releaseNode !== undefined) {
-              bends.push({bendalter: parseInt (bendalterNote.value, 10), direction: "down"});
-            } else {
-              bends.push({bendalter: parseInt (bendalterNote.value, 10), direction: "up"});
-            }
-          });
+        this.readBends(node, technicalNode, bends, noteBends);
       }
     }
 
@@ -519,6 +548,7 @@ export class VoiceGenerator {
       note = new TabNote(this.currentVoiceEntry, this.currentStaffEntry, noteLength, pitch, this.currentMeasure,
                          stringNumber, fretNumber, bends);
     }
+    note.Bends = noteBends;
 
     this.addNoteInfo(note, noteTypeXml, printObject, isCueNote, normalNotes,
                      displayStepUnpitched, displayOctaveUnpitched,

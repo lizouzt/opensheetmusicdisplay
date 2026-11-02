@@ -251,6 +251,7 @@ export class InstrumentReader {
               staff.xmlStafflineCount = isNaN(staff.StafflineCount) ? undefined : staff.StafflineCount;
             }
             this.readStaffLineDetails(staff, staffDetailsNode);
+            this.readStaffSize(staff, staffDetailsNode);
           }
           // check multi measure rest
           const measureStyle: IXmlElement = xmlNode.element("measure-style");
@@ -633,6 +634,7 @@ export class InstrumentReader {
       log.debug("InstrumentReader.readNextXmlMeasure", errorMsg, e);
     }
 
+    this.snapshotStaffSizes();
     this.previousMeasure = this.currentMeasure;
     this.currentXmlMeasureIndex += 1;
     return true;
@@ -878,6 +880,41 @@ export class InstrumentReader {
         detail.Color = colorValue;
       }
       staff.setLineDetail(detail);
+    }
+  }
+
+  /**
+   * MusicXML staff-size is a percentage of the default staff space.
+   * scaling, when present, is the percentage applied to notes and other notation.
+   * The staff keeps the latest value so the next measure can inherit it.
+   * The measure itself stores the value in effect when its reading finishes.
+   */
+  private readStaffSize(staff: Staff, staffDetailsNode: IXmlElement): void {
+    const sizeNode: IXmlElement = staffDetailsNode.element("staff-size");
+    if (!sizeNode) {
+      return;
+    }
+    const percent: number = parseFloat(sizeNode.value);
+    if (!Number.isFinite(percent) || percent <= 0) {
+      return;
+    }
+    staff.StaffSpaceScale = percent / 100;
+    const scalingValue: string = sizeNode.attribute("scaling")?.value;
+    const scalingPercent: number = scalingValue === undefined ? percent : parseFloat(scalingValue);
+    staff.NotationScale = !Number.isFinite(scalingPercent) || scalingPercent <= 0
+      ? staff.StaffSpaceScale
+      : scalingPercent / 100;
+  }
+
+  /** Stores each staff's current staff-size on this measure, including a size inherited from earlier. */
+  private snapshotStaffSizes(): void {
+    if (!this.currentMeasure) {
+      return;
+    }
+    for (let staffIndex: number = 0; staffIndex < this.instrument.Staves.length; staffIndex++) {
+      const staff: Staff = this.instrument.Staves[staffIndex];
+      const globalIndex: number = this.inSourceMeasureInstrumentIndex + staffIndex;
+      this.currentMeasure.setStaffSizeScales(globalIndex, staff.StaffSpaceScale, staff.NotationScale);
     }
   }
 

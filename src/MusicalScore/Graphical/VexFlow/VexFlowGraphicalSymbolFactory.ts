@@ -95,6 +95,9 @@ export class VexFlowGraphicalSymbolFactory implements IGraphicalSymbolFactory {
         const extraGraphicalMeasure: GraphicalMeasure = new VexFlowMeasure(staffLine.ParentStaff, undefined, staffLine);
         extraGraphicalMeasure.IsExtraGraphicalMeasure = true; // this also means that MeasureNumber < 0 because unchanged
         extraGraphicalMeasure.ExtraGraphicalMeasurePreviousMeasure = staffLine.Measures.last();
+        if (extraGraphicalMeasure.StaffSpaceScale !== 1 || extraGraphicalMeasure.NotationScale !== 1) {
+            (extraGraphicalMeasure as VexFlowMeasure).resetLayout();
+        }
         return extraGraphicalMeasure;
     }
 
@@ -176,6 +179,13 @@ export class VexFlowGraphicalSymbolFactory implements IGraphicalSymbolFactory {
         const se: VexFlowStaffEntry = graphicalStaffEntry as VexFlowStaffEntry;
         const vfClefParams: { type: string, size: string, annotation: string } = VexFlowConverter.Clef(clefInstruction, "small");
         se.vfClefBefore = new VF.ClefNote(vfClefParams.type, vfClefParams.size, vfClefParams.annotation);
+        const clefScale: number = se.parentMeasure?.NotationScale ?? 1;
+        if (clefScale !== 1) {
+            const glyph: any = (se.vfClefBefore as any).glyph;
+            glyph.setPoint(glyph.point * clefScale);
+            glyph.reset();
+            se.vfClefBefore.setWidth(glyph.getMetrics().width);
+        }
         return;
     }
 
@@ -195,6 +205,10 @@ export class VexFlowGraphicalSymbolFactory implements IGraphicalSymbolFactory {
             // Match addKeyAtBegin: reserve width but hide SVG output as well as Canvas ink.
             (signature as any).setStyle({fillStyle: "#00000000", strokeStyle: "#00000000"});
             (signature.keySignature as any).hidden = true;
+        }
+        const keyScale: number = measure.NotationScale;
+        if (keyScale !== 1) {
+            (signature.keySignature as any).glyphFontScale = 38 * keyScale;
         }
         (graphicalStaffEntry as VexFlowStaffEntry).vfKeys.push(signature);
     }

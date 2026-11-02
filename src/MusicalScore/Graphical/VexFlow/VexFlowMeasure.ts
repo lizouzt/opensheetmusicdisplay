@@ -127,11 +127,16 @@ export class VexFlowMeasure extends GraphicalMeasure {
 
         // TODO save beginning and end bar type, set these again after new stave.
 
-        this.stave = new VF.Stave(0, 0, 0, {
+        const staffSpaceScale: number = this.StaffSpaceScale;
+        const staveOptions: any = {
             fill_style: this.rules.StaffLineColor,
             space_above_staff_ln: 0,
-            space_below_staff_ln: 0
-        });
+            space_below_staff_ln: 0,
+        };
+        if (staffSpaceScale !== 1) {
+            staveOptions.spacing_between_lines_px = unitInPixels * staffSpaceScale;
+        }
+        this.stave = new VF.Stave(0, 0, 0, staveOptions);
         if (this.InitiallyActiveClef) {
             (this.stave as any).clef = VexFlowConverter.Clef(this.InitiallyActiveClef).type;
             // Vexflow sets stave.clef to treble by default. It needs this info e.g. for key signature accidentals on new key sig
@@ -204,6 +209,7 @@ export class VexFlowMeasure extends GraphicalMeasure {
         } else {
         const vfclef: { type: string, size: string, annotation: string } = VexFlowConverter.Clef(clef, "default");
         this.stave.addClef(vfclef.type, vfclef.size, vfclef.annotation, VF.StaveModifier.Position.BEGIN);
+        this.scaleNewestClef(VF.StaveModifier.Position.BEGIN);
         }
         this.updateInstructionWidth();
     }
@@ -266,6 +272,59 @@ export class VexFlowMeasure extends GraphicalMeasure {
         }
     }
 
+    /** Shrink or enlarge the clef just added, before its width is measured. */
+    private scaleNewestClef(position: number): void {
+        const notationScale: number = this.NotationScale;
+        if (notationScale === 1) {
+            return;
+        }
+        const modifiers: VF.StaveModifier[] = this.stave.getModifiers();
+        for (let index: number = modifiers.length - 1; index >= 0; index--) {
+            const modifier: VF.StaveModifier = modifiers[index];
+            if (modifier.getCategory() === "clefs" && modifier.getPosition() === position) {
+                this.scaleClefModifier(modifier, notationScale);
+                return;
+            }
+        }
+    }
+
+    /** VexFlow clef point sizes are 40 (default) and 32 (small). */
+    private scaleClefModifier(modifier: VF.StaveModifier, notationScale: number): void {
+        const clefModifier: any = modifier;
+        const glyph: any = clefModifier.glyph;
+        if (!glyph) {
+            return;
+        }
+        const small: boolean = clefModifier.size === "small";
+        glyph.setPoint((small ? 32 : 40) * notationScale);
+        glyph.reset();
+        clefModifier.setWidth(glyph.getMetrics().width);
+        const attachment: any = clefModifier.attachment;
+        const annotation: any = clefModifier.annotation;
+        if (attachment && annotation) {
+            attachment.setPoint(annotation.point * notationScale);
+            attachment.reset();
+            annotation.x_shift *= notationScale;
+            attachment.setXShift(annotation.x_shift);
+        }
+    }
+
+    /** Key-signature glyphs are built later from glyphFontScale. The default is 38. */
+    private scaleNewestKeySignature(): void {
+        const notationScale: number = this.NotationScale;
+        if (notationScale === 1) {
+            return;
+        }
+        const modifiers: VF.StaveModifier[] = this.stave.getModifiers();
+        for (let index: number = modifiers.length - 1; index >= 0; index--) {
+            const modifier: VF.StaveModifier = modifiers[index];
+            if (modifier instanceof VF.KeySignature) {
+                (modifier as any).glyphFontScale = 38 * notationScale;
+                return;
+            }
+        }
+    }
+
     /**
      * MusicXML line 1 is the bottom line. VexFlow line 0 is the top.
      * A staff space is 40 tenths and unitInPixels pixels, so a width in tenths becomes pixels at unitInPixels / 40.
@@ -317,6 +376,7 @@ export class VexFlowMeasure extends GraphicalMeasure {
             VexFlowConverter.keySignature(previousKey),
             undefined
         );
+        this.scaleNewestKeySignature();
         if (this.isTabMeasure && !this.rules.TabKeySignatureRendered) {
             const modifiers: VF.StaveModifier[] = this.stave.getModifiers();
             for (const modifier of modifiers) {
@@ -346,7 +406,7 @@ export class VexFlowMeasure extends GraphicalMeasure {
             //   If we want to x-align the startX / note startX, just not rendering the modifier is not enough.
             //   For tab-only scores, this is more compact though.
         }
-        const timeSig: VF.TimeSignature = VexFlowConverter.TimeSignature(rhythm);
+        const timeSig: VF.TimeSignature = VexFlowConverter.TimeSignature(rhythm, this.NotationScale);
         this.stave.addModifier(
             timeSig,
             VF.StaveModifier.Position.BEGIN
@@ -378,6 +438,7 @@ export class VexFlowMeasure extends GraphicalMeasure {
             return; // don't overwrite existing clef with invisible clef
         }
         this.stave.setEndClef(vfclef.type, vfclef.size, vfclef.annotation);
+        this.scaleNewestClef(VF.StaveModifier.Position.END);
         for (const modifier of this.stave.getModifiers()) {
             if (!visible) {
                 // make clef invisible in vexflow. (only rendered to correct layout and staffentry boundingbox)

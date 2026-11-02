@@ -53,6 +53,39 @@ export abstract class StaffLine extends GraphicalObject {
         this.calculateStaffLineOffsets();
     }
 
+    /** 1 until a measure on this system uses a MusicXML staff-size other than 100%. */
+    private appliedStaffSpaceScale: number = 1;
+
+    public get AppliedStaffSpaceScale(): number {
+        return this.appliedStaffSpaceScale;
+    }
+
+    /**
+     * Lengthens this staff to the largest staff-size among its measures.
+     * Scale 1 leaves the constructed staff unchanged, including tablature.
+     */
+    public growByStaffSpaceScale(scale: number, leadSheet: boolean): void {
+        if (scale === 1 || this.appliedStaffSpaceScale !== 1) {
+            return;
+        }
+        this.appliedStaffSpaceScale = scale;
+        this.staffHeight *= scale;
+        const staffHeightUnits: number = this.parentMusicSystem.rules.StaffHeight * scale;
+        this.PositionAndShape.BorderBottom = staffHeightUnits;
+        if (leadSheet) {
+            return;
+        }
+        for (let i: number = 0; i < this.staffLines.length; i++) {
+            const line: GraphicalLine = this.staffLines[i];
+            if (!line) {
+                continue;
+            }
+            const y: number = i * staffHeightUnits / 4;
+            line.Start = new PointF2D(line.Start.x, y);
+            line.End = new PointF2D(line.End.x, y);
+        }
+    }
+
     /**
      * If the musicXML sets different numbers of stafflines, we need to have different offsets
      * to accomodate this - primarily for the sky and bottom lines and cursor.

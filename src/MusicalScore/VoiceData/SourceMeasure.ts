@@ -44,6 +44,8 @@ export class SourceMeasure {
         for (let i: number = 0; i < completeNumberOfStaves; i++) {
             this.graphicalMeasureErrors.push(false);
             this.staffLinkedExpressions.push([]);
+            this.staffSpaceScales.push(1);
+            this.notationScales.push(1);
         }
     }
 
@@ -71,6 +73,11 @@ export class SourceMeasure {
      *   (TODO sheet-wide widthFactor not yet implemented)
      */
     public WidthFactor: number = 1;
+
+    /** MusicXML staff-size / 100 for each global staff. Later measures inherit until a new staff-size. */
+    private staffSpaceScales: number[] = [];
+    /** MusicXML staff-size@scaling / 100 for each global staff. Matches staffSpaceScales when scaling is absent. */
+    private notationScales: number[] = [];
 
     private measureNumber: number;
     public MeasureNumberXML: number;
@@ -147,6 +154,24 @@ export class SourceMeasure {
 
     public get CompleteNumberOfStaves(): number {
         return this.completeNumberOfStaves;
+    }
+
+    /** Records the staff-size in effect for one staff at the end of this measure. */
+    public setStaffSizeScales(staffIndex: number, staffSpaceScale: number, notationScale: number): void {
+        this.staffSpaceScales[staffIndex] = staffSpaceScale;
+        this.notationScales[staffIndex] = notationScale;
+    }
+
+    /** Staff space relative to the default. 1 when this staff has no staff-size yet. */
+    public getStaffSpaceScale(staffIndex: number): number {
+        const scale: number = this.staffSpaceScales[staffIndex];
+        return scale === undefined ? 1 : scale;
+    }
+
+    /** Notation size relative to the default. 1 when this staff has no staff-size yet. */
+    public getNotationScale(staffIndex: number): number {
+        const scale: number = this.notationScales[staffIndex];
+        return scale === undefined ? 1 : scale;
     }
 
     public get Duration(): Fraction {

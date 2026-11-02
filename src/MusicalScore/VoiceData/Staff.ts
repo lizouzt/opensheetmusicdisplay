@@ -45,6 +45,16 @@ export class Staff {
     public hasLyrics: boolean = false;
     public openTieDict: { [_: number]: Tie } = {};
     private lineDetails: StaffLineDetail[] = [];
+    /**
+     * Latest MusicXML staff-size / 100 on this staff. 1 when the element is absent.
+     * Each measure keeps the value that was current when it was read; see SourceMeasure.getStaffSpaceScale.
+     */
+    public StaffSpaceScale: number = 1;
+    /**
+     * Latest MusicXML staff-size@scaling / 100. When the element is present and the attribute is absent,
+     * this matches StaffSpaceScale. 1 when there is no staff-size.
+     */
+    public NotationScale: number = 1;
 
     public get ParentInstrument(): Instrument {
         return this.parentInstrument;

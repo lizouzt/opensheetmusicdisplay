@@ -11,6 +11,8 @@ export class Arpeggio {
     public parentVoiceEntry: VoiceEntry;
     public notes: Note[];
     public type: ArpeggioType;
+    /** MusicXML arpeggiate@unbroken: the sign continues onto another staff of this part. Not drawn across staves. */
+    public Unbroken: boolean = false;
 
     public addNote(note: Note): void {
         this.notes.push(note);

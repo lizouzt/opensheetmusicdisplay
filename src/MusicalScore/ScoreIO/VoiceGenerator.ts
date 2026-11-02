@@ -206,6 +206,9 @@ export class VoiceGenerator {
                 this.currentVoiceEntry.Arpeggio = currentArpeggio;
             }
           }
+          if (arpeggioNode.attribute("unbroken")?.value === "yes") {
+            currentArpeggio.Unbroken = true;
+          }
           currentArpeggio.addNote(this.currentNote);
         }
         // check for Ties - must be the last check

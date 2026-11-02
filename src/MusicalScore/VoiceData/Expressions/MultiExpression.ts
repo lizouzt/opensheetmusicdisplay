@@ -39,6 +39,8 @@ export class MultiExpression {
     public PedalEnd: Pedal;
     public WavyLineStart: WavyLine;
     public WavyLineEnd: WavyLine;
+    /** MusicXML direction@system: only-top, only-bottom, also-top, also-bottom, or none. */
+    public SystemRelation: string;
 
     public get SourceMeasureParent(): SourceMeasure {
         return this.sourceMeasure;

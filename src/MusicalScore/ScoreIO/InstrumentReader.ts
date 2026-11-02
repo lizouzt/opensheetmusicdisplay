@@ -20,6 +20,7 @@ import {IXmlAttribute} from "../../Common/FileIO/Xml";
 import log from "loglevel";
 import {MidiInstrument} from "../VoiceData/Instructions/ClefInstruction";
 import {ChordSymbolReader} from "./MusicSymbolModules/ChordSymbolReader";
+import {ChordSymbolContainer} from "../VoiceData/ChordSymbolContainer";
 import {ExpressionReader} from "./MusicSymbolModules/ExpressionReader";
 import {RepetitionInstructionReader} from "./MusicSymbolModules/RepetitionInstructionReader";
 import {SlurReader} from "./MusicSymbolModules/SlurReader";
@@ -501,11 +502,12 @@ export class InstrumentReader {
           }
           if (!handeled || directionTypeNodes.length > 1) {
            let expressionReader: ExpressionReader = this.expressionReaders[0];
-           const staffIndex: number = this.readExpressionStaffNumber(xmlNode) - 1;
+           const staffIndex: number = this.staffIndexForSystem(xmlNode, this.readExpressionStaffNumber(xmlNode) - 1);
            if (staffIndex < this.expressionReaders.length) {
              expressionReader = this.expressionReaders[staffIndex];
            }
            if (expressionReader) {
+             expressionReader.SystemRelation = xmlNode.attribute("system")?.value;
              if (directionTypeNodes.some(dt => dt.element("octave-shift"))) {
                expressionReader.readExpressionParameters(
                  xmlNode, this.instrument, this.divisions, currentFraction, previousFraction, this.currentMeasure.MeasureNumber, true
@@ -575,15 +577,16 @@ export class InstrumentReader {
             log.debug("InstrumentReader.readTempoInstruction", e);
           }
         } else if (xmlNode.name === "harmony") {
-          const noteStaff: number = this.getNoteStaff(xmlNode);
+          const noteStaff: number = this.staffIndexForSystem(xmlNode, this.getNoteStaff(xmlNode) - 1) + 1;
           this.currentStaff = this.instrument.Staves[noteStaff - 1];
           // new chord, could be second chord on same staffentry/note
           const musicTimestamp: Fraction = currentFraction.clone();
           this.currentStaffEntry = this.currentMeasure.findOrCreateStaffEntry(
               musicTimestamp, this.inSourceMeasureInstrumentIndex + noteStaff - 1, this.currentStaff).staffEntry;
-          this.currentStaffEntry.ChordContainers.push(
-            ChordSymbolReader.readChordSymbol(xmlNode, this.musicSheet, this.activeKeys[noteStaff - 1])
-          );
+          const chord: ChordSymbolContainer = ChordSymbolReader.readChordSymbol(
+            xmlNode, this.musicSheet, this.activeKeys[noteStaff - 1]);
+          chord.SystemRelation = xmlNode.attribute("system")?.value;
+          this.currentStaffEntry.ChordContainers.push(chord);
         }
         this.measureEndFraction = Fraction.max(this.measureEndFraction, currentFraction).clone();
       }
@@ -1818,6 +1821,22 @@ export class InstrumentReader {
         );
       }
     }
+  }
+
+  /**
+   * only-top and only-bottom select this part's top or bottom staff.
+   * also-top, also-bottom and none stay on the staff the element already names.
+   * The element is not copied onto another instrument.
+   */
+  private staffIndexForSystem(xmlNode: IXmlElement, fallbackIndex: number): number {
+    const relation: string = xmlNode.attribute("system")?.value;
+    if (relation === "only-top") {
+      return 0;
+    }
+    if (relation === "only-bottom") {
+      return Math.max(0, this.instrument.Staves.length - 1);
+    }
+    return fallbackIndex < 0 ? 0 : fallbackIndex;
   }
 
   private getNoteStaff(xmlNode: IXmlElement): number {

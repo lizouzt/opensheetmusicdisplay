@@ -33,6 +33,8 @@ export class ExpressionReader {
     private offsetDivisions: number;
     private staffNumber: number;
     private globalStaffIndex: number;
+    /** MusicXML direction@system for the direction currently being read. */
+    public SystemRelation: string;
     private directionTimestamp: Fraction;
     private currentMultiTempoExpression: MultiTempoExpression;
     private openContinuousDynamicExpressions: ContinuousDynamicExpression[] = [];
@@ -886,6 +888,9 @@ export class ExpressionReader {
                     this.getMultiExpression.numberXml = numberXml;
                     this.getMultiExpression.PlaybackTimestamp = playbackTimestamp?.clone();
             currentMeasure.StaffLinkedExpressions[this.globalStaffIndex].push(existingMultiExpression);
+        }
+        if (this.SystemRelation) {
+            existingMultiExpression.SystemRelation = this.SystemRelation;
         }
         return existingMultiExpression;
     }

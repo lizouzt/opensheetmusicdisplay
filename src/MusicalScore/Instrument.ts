@@ -6,6 +6,7 @@ import { Staff } from "./VoiceData/Staff";
 import { SubInstrument } from "./SubInstrument";
 import { MidiInstrument } from "./VoiceData/Instructions/ClefInstruction";
 import { PartLink } from "./PartLink";
+import { PartSymbol } from "./VoiceData/PartSymbol";
 
 export class Instrument extends InstrumentalGroup {
 
@@ -41,6 +42,10 @@ export class Instrument extends InstrumentalGroup {
     private partAbbreviationPrintObject: boolean = true;
     /** MusicXML 4.0 part-link entries. Paths are relative to the root of the compressed file. */
     private partLinks: PartLink[] = [];
+    /** MusicXML part-symbol elements. Empty means the usual brace across every staff of a multi-staff part. */
+    private partSymbols: PartSymbol[] = [];
+    /** Default stem direction from voice-direction, keyed by MusicXML voice number. "up" or "down". */
+    private voiceDirections: { [voiceId: number]: string } = {};
 
     public get Voices(): Voice[] {
         return this.voices;
@@ -142,6 +147,20 @@ export class Instrument extends InstrumentalGroup {
     /** Linked part files from &lt;part-link&gt;. Empty when the score has none. */
     public get PartLinks(): PartLink[] {
         return this.partLinks;
+    }
+    /** Braces and brackets from part-symbol. Replaces the previous list when a measure sets them. */
+    public get PartSymbols(): PartSymbol[] {
+        return this.partSymbols;
+    }
+    public set PartSymbols(value: PartSymbol[]) {
+        this.partSymbols = value;
+    }
+    /** Default stem direction for a voice that has no stem element. Undefined when the score does not set one. */
+    public getVoiceDirection(voiceId: number): string {
+        return this.voiceDirections[voiceId];
+    }
+    public setVoiceDirection(voiceId: number, direction: string): void {
+        this.voiceDirections[voiceId] = direction;
     }
 
     public get Visible(): boolean {

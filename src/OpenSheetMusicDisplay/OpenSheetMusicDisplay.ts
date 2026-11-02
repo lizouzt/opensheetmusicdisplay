@@ -185,14 +185,30 @@ export class OpenSheetMusicDisplay {
         log.debug("[OSMD] load(), Document url: " + xmlDocument.URL);
 
         let scorePartwiseElement: Element;
+        let scoreTimewiseElement: Element;
         for (let i: number = 0, length: number = xmlDocumentNodes.length; i < length; i += 1) {
             const node: Node = xmlDocumentNodes[i];
-            if (node.nodeType === Node.ELEMENT_NODE && node.nodeName.toLowerCase() === "score-partwise") {
+            if (node.nodeType !== Node.ELEMENT_NODE) {
+                continue;
+            }
+            const nodeName: string = node.nodeName.toLowerCase();
+            if (nodeName === "score-partwise") {
                 scorePartwiseElement = <Element>node;
                 break;
             }
+            if (nodeName === "score-timewise") {
+                scoreTimewiseElement = <Element>node;
+            }
+        }
+        if (!scorePartwiseElement && scoreTimewiseElement) {
+            scorePartwiseElement = this.convertTimewiseToPartwise(scoreTimewiseElement);
         }
         if (!scorePartwiseElement) {
+            if (scoreTimewiseElement) {
+                console.error("Could not parse MusicXML, deprecated score-timewise had no parts");
+                return Promise.reject(new Error(
+                    "OpenSheetMusicDisplay: MusicXML score-timewise is deprecated and could not be converted to partwise"));
+            }
             console.error("Could not parse MusicXML, no valid partwise element found");
             return Promise.reject(new Error("OpenSheetMusicDisplay: Document is not a valid 'partwise' MusicXML"));
         }
@@ -213,6 +229,83 @@ export class OpenSheetMusicDisplay {
         this.updateGraphic();
 
         return Promise.resolve({});
+    }
+
+    /**
+     * MusicXML score-timewise is deprecated. Rebuild it as score-partwise: each measure's
+     * part children become measures of that part, in the order of the part-list.
+     */
+    private convertTimewiseToPartwise(timewise: Element): Element {
+        const documentNode: Document = timewise.ownerDocument;
+        const partwise: Element = documentNode.createElement("score-partwise");
+        const version: string = timewise.getAttribute("version");
+        if (version) {
+            partwise.setAttribute("version", version);
+        }
+        const parts: Map<string, Element> = new Map<string, Element>();
+        const seenOrder: string[] = [];
+        for (let i: number = 0; i < timewise.childNodes.length; i += 1) {
+            const child: Node = timewise.childNodes[i];
+            if (child.nodeType === Node.ELEMENT_NODE && child.nodeName.toLowerCase() === "measure") {
+                const measure: Element = <Element>child;
+                const measureNumber: string = measure.getAttribute("number") ?? "1";
+                for (let j: number = 0; j < measure.childNodes.length; j += 1) {
+                    const partNode: Node = measure.childNodes[j];
+                    if (partNode.nodeType !== Node.ELEMENT_NODE || partNode.nodeName.toLowerCase() !== "part") {
+                        continue;
+                    }
+                    const partElement: Element = <Element>partNode;
+                    const id: string = partElement.getAttribute("id") ?? "";
+                    let part: Element = parts.get(id);
+                    if (!part) {
+                        part = documentNode.createElement("part");
+                        if (id) {
+                            part.setAttribute("id", id);
+                        }
+                        parts.set(id, part);
+                        seenOrder.push(id);
+                    }
+                    const partwiseMeasure: Element = documentNode.createElement("measure");
+                    partwiseMeasure.setAttribute("number", measureNumber);
+                    for (let a: number = 0; a < measure.attributes.length; a += 1) {
+                        const attribute: Attr = measure.attributes[a];
+                        if (attribute.name !== "number") {
+                            partwiseMeasure.setAttribute(attribute.name, attribute.value);
+                        }
+                    }
+                    for (let k: number = 0; k < partElement.childNodes.length; k += 1) {
+                        partwiseMeasure.appendChild(partElement.childNodes[k].cloneNode(true));
+                    }
+                    part.appendChild(partwiseMeasure);
+                }
+            } else {
+                partwise.appendChild(child.cloneNode(true));
+            }
+        }
+        if (parts.size === 0) {
+            return undefined;
+        }
+        const orderedIds: string[] = [];
+        const partList: Element = timewise.getElementsByTagName("part-list")[0];
+        if (partList) {
+            const scoreParts: HTMLCollectionOf<Element> = partList.getElementsByTagName("score-part");
+            for (let i: number = 0; i < scoreParts.length; i += 1) {
+                const id: string = scoreParts[i].getAttribute("id");
+                if (id && parts.has(id)) {
+                    orderedIds.push(id);
+                }
+            }
+        }
+        for (const id of seenOrder) {
+            if (orderedIds.indexOf(id) < 0) {
+                orderedIds.push(id);
+            }
+        }
+        for (const id of orderedIds) {
+            partwise.appendChild(parts.get(id));
+        }
+        log.warn("OpenSheetMusicDisplay: MusicXML score-timewise is deprecated. Converted it to partwise.");
+        return partwise;
     }
 
     /**

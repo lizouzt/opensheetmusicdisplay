@@ -250,6 +250,74 @@ export class VexFlowConverter {
         return [ghostNote];
     }
 
+    /** Glyph code for one VexFlow accidental code, such as "#" or "+". */
+    public static accidentalGlyphCode(vexCode: string): string {
+        const glyphs: { [code: string]: string } = {
+            "#": "v18",
+            "##": "v7f",
+            "b": "v44",
+            "bb": "v26",
+            "n": "v4e",
+            "d": "vab",
+            "db": "v9e",
+            "+": "v78",
+            "++": "v51",
+            "+-": "v8d",
+            "++-": "v7a",
+            "bs": "vb7",
+            "bss": "v39",
+            "o": "vd0",
+            "k": "vd1",
+        };
+        return glyphs[vexCode];
+    }
+
+    /** VexFlow accidental codes for one MusicXML accidental name, closest to the notehead first. */
+    public static accidentalXmlCodes(accidentalXml: string): string[] {
+        switch (accidentalXml) {
+            case "sharp":
+                return ["#"];
+            case "flat":
+                return ["b"];
+            case "natural":
+                return ["n"];
+            case "double-sharp":
+                return ["##"];
+            case "sharp-sharp":
+                return ["#", "#"];
+            case "double-flat":
+                return ["bb"];
+            case "flat-flat":
+                return ["b", "b"];
+            case "natural-sharp":
+                return ["#", "n"];
+            case "natural-flat":
+                return ["b", "n"];
+            case "quarter-sharp":
+                return ["+"];
+            case "quarter-flat":
+                return ["d"];
+            case "three-quarters-sharp":
+                return ["++"];
+            case "three-quarters-flat":
+                return ["db"];
+            case "slash-sharp":
+                return ["++-"];
+            case "slash-quarter-sharp":
+                return ["+-"];
+            case "slash-flat":
+                return ["bs"];
+            case "double-slash-flat":
+                return ["bss"];
+            case "sori":
+                return ["o"];
+            case "koron":
+                return ["k"];
+            default:
+                return [];
+        }
+    }
+
     /**
      * Adds an accidental to the key (note) of the given index of a VexFlow note.
      * @param inParentheses Draw the accidental in parentheses (a cautionary accidental).
@@ -744,7 +812,17 @@ export class VexFlowConverter {
         // add accidentals
         for (let i: number = 0, len: number = notes.length; i < len; i += 1) {
             (notes[i] as VexFlowGraphicalNote).setIndex(vfnote, i);
-            if (accidentals[i]) {
+            const accidentalXmls: string[] = notes[i].sourceNote.AccidentalXmls;
+            if (accidentalXmls && accidentalXmls.length > 1) {
+                const inParentheses: boolean = notes[i].sourceNote.AccidentalParenthesesXml || notes[i].sourceNote.AccidentalBracketXml;
+                let closestToNotehead: boolean = true;
+                for (const accidentalXml of accidentalXmls) {
+                    for (const code of VexFlowConverter.accidentalXmlCodes(accidentalXml)) {
+                        VexFlowConverter.addAccidental(vfnote, i, code, closestToNotehead && inParentheses);
+                        closestToNotehead = false;
+                    }
+                }
+            } else if (accidentals[i]) {
                 // <accidental parentheses="yes"> or bracket="yes", e.g. a cautionary accidental.
                 //   VexFlow has no brackets for accidentals, so bracketed ones are drawn in parentheses too.
                 const sourceNote: Note = notes[i].sourceNote;

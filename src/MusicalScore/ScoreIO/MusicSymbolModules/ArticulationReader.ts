@@ -217,6 +217,20 @@ export class ArticulationReader {
       }
     }
 
+    const harmonicNode: IXmlElement = technicalNode.element("harmonic");
+    if (harmonicNode) {
+      let kind: string = "";
+      if (harmonicNode.element("natural")) {
+        kind = "natural";
+      } else if (harmonicNode.element("artificial")) {
+        kind = "artificial";
+      }
+      currentNote.Harmonic = {
+        number: harmonicNode.attribute("number")?.value,
+        kind: kind,
+      };
+    }
+
     const nodeFingerings: IXmlElement[] = technicalNode.elements("fingering");
     for (const nodeFingering of nodeFingerings) {
       // if nodeFingerings.length > 1: isBulkFingering = true in MusicSheetCalculator

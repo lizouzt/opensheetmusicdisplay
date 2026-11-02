@@ -345,6 +345,48 @@ export class VoiceGenerator {
 
   }
 
+  /** Half tones of several accidental elements added together. Unknown names add nothing. */
+  private accidentalXmlHalfTones(values: string[]): number {
+    let sum: number = 0;
+    for (const value of values) {
+      switch (value) {
+        case "sharp":
+        case "natural-sharp":
+          sum += 1;
+          break;
+        case "flat":
+        case "natural-flat":
+          sum -= 1;
+          break;
+        case "double-sharp":
+        case "sharp-sharp":
+          sum += 2;
+          break;
+        case "double-flat":
+        case "flat-flat":
+          sum -= 2;
+          break;
+        case "quarter-sharp":
+          sum += 0.5;
+          break;
+        case "quarter-flat":
+          sum -= 0.5;
+          break;
+        case "three-quarters-sharp":
+          sum += 1.5;
+          break;
+        case "three-quarters-flat":
+          sum -= 1.5;
+          break;
+        case "natural":
+          break;
+        default:
+          break;
+      }
+    }
+    return sum;
+  }
+
   /**
    * Reads technical bends. Tab notes keep the previous up/down list.
    * Every note also stores semitone alter, shape, and a release as a fraction of its duration.
@@ -396,7 +438,9 @@ export class VoiceGenerator {
                         stemColorXml: string, noteheadColorXml: string): Note {
     //log.debug("addSingleNote called");
     let noteAlter: number = 0;
+    let alterWasGiven: boolean = false;
     let accidentalValue: string;
+    const accidentalValues: string[] = [];
     let accidentalSmufl: string;
     let noteheadAccidentalSmufl: string;
     let noteheadAccidentalText: string;
@@ -433,6 +477,7 @@ export class VoiceGenerator {
                   throw new MusicSheetReadingException(errorMsg, undefined);
                 }
               } else if (pitchElement.name === "alter") {
+                alterWasGiven = true;
                 noteAlter = parseFloat(pitchElement.value);
                 if (isNaN(noteAlter)) {
                   const errorMsg: string = ITextTranslation.translateText(
@@ -459,6 +504,7 @@ export class VoiceGenerator {
           }
         } else if (noteElement.name === "accidental") {
           accidentalValue = noteElement.value;
+          accidentalValues.push(noteElement.value);
           accidentalSmufl = noteElement.attribute("smufl")?.value;
           const parenthesesXml: string = noteElement.attribute("parentheses")?.value;
           const bracketXml: string = noteElement.attribute("bracket")?.value;
@@ -531,6 +577,9 @@ export class VoiceGenerator {
     }
 
     noteOctave -= Pitch.OctaveXmlDifference;
+    if (!alterWasGiven && accidentalValues.length > 1) {
+      noteAccidental = Pitch.AccidentalFromHalfTones(this.accidentalXmlHalfTones(accidentalValues));
+    }
     const pitch: Pitch = new Pitch(noteStep, noteOctave, noteAccidental, accidentalValue);
     const noteLength: Fraction = Fraction.createFromFraction(noteDuration);
     let note: Note = undefined;
@@ -570,6 +619,14 @@ export class VoiceGenerator {
                      noteheadColorXml, noteheadColorXml);
     note.TypeLength = typeDuration;
     note.IsGraceNote = isGraceNote;
+    if (stemDirectionXml === StemDirectionType.Undefined) {
+      const directed: string = this.instrument.getVoiceDirection(this.voice.VoiceId);
+      if (directed === "down") {
+        stemDirectionXml = StemDirectionType.Down;
+      } else if (directed === "up") {
+        stemDirectionXml = StemDirectionType.Up;
+      }
+    }
     note.StemDirectionXml = stemDirectionXml; // maybe unnecessary, also in VoiceEntry
     note.TremoloInfo = tremoloInfo;
     if (tremoloInfo?.tremoloBetweenNotesStart || tremoloInfo?.tremoloBetweenNotesStop) {
@@ -580,6 +637,9 @@ export class VoiceGenerator {
     note.AccidentalBracketXml = accidentalBracket;
     if (accidentalSmufl) {
       note.AccidentalSmufl = accidentalSmufl;
+    }
+    if (accidentalValues.length > 0) {
+      note.AccidentalXmls = accidentalValues;
     }
     if (noteheadAccidentalSmufl) {
       note.NoteheadAccidentalSmufl = noteheadAccidentalSmufl;

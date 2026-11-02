@@ -27,12 +27,20 @@ export class KeyInstruction extends AbstractNotationInstruction {
     public isTransposedBy: number = 0;
     /** smufl names from key-accidental elements, in document order. The glyphs are not drawn. */
     public AccidentalSmufl: string[] = [];
+    /** key-step / key-accidental pairs, in document order. Drawn when NonTraditional is set. */
+    public KeyAccidentals: KeyAccidentalMark[] = [];
+    /** True when the key has no fifths element and lists key-accidental elements. */
+    public NonTraditional: boolean = false;
 
     public static copy(keyInstruction: KeyInstruction): KeyInstruction {
         const newKeyInstruction: KeyInstruction = new KeyInstruction(keyInstruction.parent, keyInstruction.Key, keyInstruction.Mode);
         // note that newKeyInstruction.keyTypeOriginal is set incorrectly in the constructor, but we fix that here:
         newKeyInstruction.keyTypeOriginal = keyInstruction.keyTypeOriginal;
         newKeyInstruction.AccidentalSmufl = keyInstruction.AccidentalSmufl.slice();
+        newKeyInstruction.KeyAccidentals = keyInstruction.KeyAccidentals.map((mark: KeyAccidentalMark) => {
+            return { step: mark.step, accidental: mark.accidental, smufl: mark.smufl };
+        });
+        newKeyInstruction.NonTraditional = keyInstruction.NonTraditional;
         return newKeyInstruction;
     }
 
@@ -126,6 +134,13 @@ export class NoteEnumToHalfToneLink {
 
     public note: NoteEnum;
     public halfTone: number;
+}
+
+/** One accidental of a non-traditional key, on the step that preceded it. */
+export interface KeyAccidentalMark {
+    step: string;
+    accidental: string;
+    smufl?: string;
 }
 
 export enum KeyEnum {

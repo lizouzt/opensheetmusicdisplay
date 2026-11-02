@@ -112,6 +112,13 @@ export class VexFlowMusicSystem extends MusicSystem {
         return;
     }
 
+    protected createInstrumentStaffBracket(firstStaffLine: StaffLine, lastStaffLine: StaffLine): void {
+        const firstVexStaff: VexFlowStaffLine = (firstStaffLine as VexFlowStaffLine);
+        const lastVexStaff: VexFlowStaffLine = (lastStaffLine as VexFlowStaffLine);
+        const vexFlowBracket: VexFlowInstrumentBracket = new VexFlowInstrumentBracket(firstVexStaff, lastVexStaff);
+        this.InstrumentBrackets.push(vexFlowBracket);
+    }
+
     /**
      * creates an instrument group bracket for the given dimension.
      * There can be cascaded bracket (e.g. a group of 2 in a group of 4) -

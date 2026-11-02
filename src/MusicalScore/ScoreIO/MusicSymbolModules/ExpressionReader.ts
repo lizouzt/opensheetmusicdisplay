@@ -790,6 +790,7 @@ export class ExpressionReader {
             fontColor = colorAttr.value;
         }
         const language: string = wordsNode.attribute("xml:lang")?.value;
+        const enclosure: string = wordsNode.attribute("enclosure")?.value;
         let defaultYXml: number;
         if (currentMeasure.Rules.PlaceWordsInsideStafflineFromXml) {
             const defaultYString: string = wordsNode.attribute("default-y")?.value;
@@ -803,7 +804,7 @@ export class ExpressionReader {
             if (this.checkIfWordsNodeIsRepetitionInstruction(text)) {
                 return;
             }
-            this.fillMultiOrTempoExpression(text, currentMeasure, inSourceMeasureCurrentFraction, fontStyle, fontColor, defaultYXml, language);
+            this.fillMultiOrTempoExpression(text, currentMeasure, inSourceMeasureCurrentFraction, fontStyle, fontColor, defaultYXml, language, enclosure);
         }
     }
     private readNumber(node: IXmlElement): number {
@@ -935,7 +936,8 @@ export class ExpressionReader {
         }
     }
     private fillMultiOrTempoExpression(inputString: string, currentMeasure: SourceMeasure, inSourceMeasureCurrentFraction: Fraction,
-        fontStyle: FontStyles, fontColor: string, defaultYXml: number = undefined, language: string = undefined): void {
+        fontStyle: FontStyles, fontColor: string, defaultYXml: number = undefined, language: string = undefined,
+        enclosure: string = undefined): void {
         if (!inputString) {
             return;
         }
@@ -945,7 +947,7 @@ export class ExpressionReader {
 
         //for (const splitStr of splitStrings) {
         this.createExpressionFromString("", tmpInputString, currentMeasure, inSourceMeasureCurrentFraction, inputString, fontStyle, fontColor,
-                                        defaultYXml, language);
+                                        defaultYXml, language, enclosure);
         //}
     }
     /*
@@ -981,7 +983,8 @@ export class ExpressionReader {
                                        fontStyle: FontStyles,
                                        fontColor: string,
                                        defaultYXml: number = undefined,
-                                       language: string = undefined): boolean {
+                                       language: string = undefined,
+                                       enclosure: string = undefined): boolean {
         const isInstantaneousTempo: boolean = InstantaneousTempoExpression.isInputStringInstantaneousTempo(stringTrimmed);
         const isContinuousTempo: boolean = ContinuousTempoExpression.isInputStringContinuousTempo(stringTrimmed);
         if (isInstantaneousTempo || isContinuousTempo) {
@@ -1105,6 +1108,7 @@ export class ExpressionReader {
         unknownExpression.ColorXML = fontColor;
         unknownExpression.language = language;
         unknownExpression.defaultYXml = defaultYXml;
+        unknownExpression.Enclosure = enclosure;
         unknownExpression.parentMeasure = currentMeasure;
         unknownMultiExpression.addExpression(unknownExpression, prefix);
         return false;

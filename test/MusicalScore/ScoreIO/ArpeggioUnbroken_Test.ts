@@ -9,7 +9,7 @@ import { unitInPixels } from "../../../src/MusicalScore/Graphical/VexFlow/VexFlo
 /**
  * MusicXML 4.0 arpeggiate@unbroken. The attribute is stored. A sign on one staff stays
  * on that staff. When both staves of a part carry the same number, the squiggle continues
- * through the gap.
+ * through the gap. One note on each staff has no VexFlow stroke, so the column is drawn here.
  */
 describe("MusicXML 4.0 arpeggio unbroken", () => {
     let container: HTMLElement;
@@ -95,6 +95,33 @@ describe("MusicXML 4.0 arpeggio unbroken", () => {
             expect(origins.length).to.be.greaterThan(0);
             expect(origins.some((y: number): boolean => y > upperBottom && y < lowerTop),
                 "at least one squiggle sits in the gap").to.equal(true);
+            done();
+        }).catch(done);
+    });
+
+    it("continues the squiggle when each staff has only one note", (done: Mocha.Done) => {
+        osmd.load(TestUtils.getScore("test_mxl4_arpeggiate_unbroken_single.musicxml")).then(() => {
+            osmd.render();
+            const upper: Arpeggio = osmd.Sheet.SourceMeasures[0].VerticalSourceStaffEntryContainers[0]
+                .StaffEntries[0].VoiceEntries[0].Notes[0].Arpeggio;
+            const lower: Arpeggio = osmd.Sheet.SourceMeasures[0].VerticalSourceStaffEntryContainers[0]
+                .StaffEntries[1].VoiceEntries[0].Notes[0].Arpeggio;
+            expect(upper.notes.length).to.equal(1);
+            expect(lower.notes.length).to.equal(1);
+            expect(upper.Unbroken).to.equal(true);
+            expect(lower.Unbroken).to.equal(true);
+            const bridges: Element[] = Array.from(container.querySelectorAll("g.vf-unbrokenarpeggio"));
+            expect(bridges.length).to.equal(1);
+            const upperLine: StaffLine = osmd.GraphicSheet.MusicPages[0].MusicSystems[0].StaffLines[0];
+            const lowerLine: StaffLine = osmd.GraphicSheet.MusicPages[0].MusicSystems[0].StaffLines[1];
+            const upperBottom: number = staffLineY(upperLine, upperLine.StaffLines.length - 1) * unitInPixels;
+            const lowerTop: number = staffLineY(lowerLine, 0) * unitInPixels;
+            const origins: number[] = glyphOrigins(bridges[0]);
+            expect(origins.length).to.be.greaterThan(1);
+            expect(origins.some((y: number): boolean => y < upperBottom), "a squiggle sits on the upper staff").to.equal(true);
+            expect(origins.some((y: number): boolean => y > upperBottom && y < lowerTop),
+                "a squiggle sits in the gap").to.equal(true);
+            expect(origins.some((y: number): boolean => y > lowerTop), "a squiggle sits on the lower staff").to.equal(true);
             done();
         }).catch(done);
     });

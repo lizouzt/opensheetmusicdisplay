@@ -25,11 +25,14 @@ export class KeyInstruction extends AbstractNotationInstruction {
     private alteratedNotes: NoteEnum[];
     /** The halftones this instruction was transposed by, compared to the original. */
     public isTransposedBy: number = 0;
+    /** smufl names from key-accidental elements, in document order. The glyphs are not drawn. */
+    public AccidentalSmufl: string[] = [];
 
     public static copy(keyInstruction: KeyInstruction): KeyInstruction {
         const newKeyInstruction: KeyInstruction = new KeyInstruction(keyInstruction.parent, keyInstruction.Key, keyInstruction.Mode);
         // note that newKeyInstruction.keyTypeOriginal is set incorrectly in the constructor, but we fix that here:
         newKeyInstruction.keyTypeOriginal = keyInstruction.keyTypeOriginal;
+        newKeyInstruction.AccidentalSmufl = keyInstruction.AccidentalSmufl.slice();
         return newKeyInstruction;
     }
 

@@ -331,12 +331,19 @@ export class ArticulationReader {
                 placement = PlacementEnum.Below;
               }
             }
+            const smuflGlyph: string = accidentalNode.attribute("smufl")?.value;
             if (placement === PlacementEnum.Above) {
               ornament.AccidentalAbove = accidental;
               ornament.AccidentalAboveXml = accidentalXml;
+              if (smuflGlyph) {
+                ornament.AccidentalAboveSmufl = smuflGlyph;
+              }
             } else if (placement === PlacementEnum.Below) {
               ornament.AccidentalBelow = accidental;
               ornament.AccidentalBelowXml = accidentalXml;
+              if (smuflGlyph) {
+                ornament.AccidentalBelowSmufl = smuflGlyph;
+              }
             }
           }
         }

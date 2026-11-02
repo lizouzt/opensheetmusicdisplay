@@ -1216,6 +1216,14 @@ export class InstrumentReader {
           continue;
         }
         const keyInstruction: KeyInstruction = new KeyInstruction(undefined, key, keyEnum);
+        const accidentalSmufl: string[] = [];
+        for (const accidentalNode of keyElement.elements("key-accidental")) {
+          const smuflGlyph: string = accidentalNode.attribute("smufl")?.value;
+          if (smuflGlyph) {
+            accidentalSmufl.push(smuflGlyph);
+          }
+        }
+        keyInstruction.AccidentalSmufl = accidentalSmufl;
         if (currentFraction.RealValue > 0) {
           if (!this.activeKeysHaveBeenInitialized[staffIndex]) {
             this.createDefaultKeyInstruction(staffIndex);

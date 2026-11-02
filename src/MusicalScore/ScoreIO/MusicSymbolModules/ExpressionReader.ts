@@ -20,6 +20,7 @@ import { FontStyles } from "../../../Common/Enums/FontStyles";
 import { RehearsalExpression } from "../../VoiceData/Expressions/RehearsalExpression";
 import { Pedal } from "../../VoiceData/Expressions/ContinuousExpressions/Pedal";
 import { WavyLine } from "../../VoiceData/Expressions/ContinuousExpressions/WavyLine";
+import { PercussionPictogram } from "../../VoiceData/PercussionPictogram";
 
 export class ExpressionReader {
     private musicSheet: MusicSheet;
@@ -292,6 +293,27 @@ export class ExpressionReader {
             }
         }
         this.readLevel(directionNode, currentMeasure);
+        this.readPercussionPictograms(directionNode, currentMeasure);
+    }
+    /**
+     * MusicXML percussion pictograms. The named SMuFL glyphs are not in the font, so they are stored and not drawn.
+     */
+    private readPercussionPictograms(directionNode: IXmlElement, currentMeasure: SourceMeasure): void {
+        const kinds: string[] = ["effect", "membrane", "metal", "wood", "timpani"];
+        for (const dirNode of directionNode.elements("direction-type")) {
+            const percussion: IXmlElement = dirNode.element("percussion");
+            if (!percussion) {
+                continue;
+            }
+            for (const kind of kinds) {
+                const node: IXmlElement = percussion.element(kind);
+                const smuflGlyph: string = node?.attribute("smufl")?.value;
+                if (!smuflGlyph) {
+                    continue;
+                }
+                currentMeasure.PercussionPictograms.push(new PercussionPictogram(kind, smuflGlyph, node.value ?? ""));
+            }
+        }
     }
     /**
      * MusicXML <level> on a direction: editorial text and whether it applies to a single symbol or the start or end of a series.
@@ -513,15 +535,22 @@ export class ExpressionReader {
     public addWavyLine(wavyLineNode: IXmlElement, currentMeasure: SourceMeasure, currentTimestamp: Fraction, previousTimestamp: Fraction): void {
         if (wavyLineNode && wavyLineNode.hasAttributes) {
             try {
+                const smuflGlyph: string = wavyLineNode.attribute("smufl")?.value;
                 switch (wavyLineNode.attribute("type").value) {
                     case "start":
                         this.createNewMultiExpressionIfNeeded(currentMeasure, -1);
                         this.openWavyLine = new WavyLine(this.placement);
+                        if (smuflGlyph) {
+                            this.openWavyLine.Smufl = smuflGlyph;
+                        }
                         this.getMultiExpression.WavyLineStart = this.openWavyLine;
                         this.openWavyLine.ParentStartMultiExpression = this.getMultiExpression;
                     break;
                     case "stop":
                         if (this.openWavyLine) {
+                            if (smuflGlyph && !this.openWavyLine.Smufl) {
+                                this.openWavyLine.Smufl = smuflGlyph;
+                            }
                             this.createNewMultiExpressionIfNeeded(currentMeasure, -1, currentTimestamp);
                             this.getMultiExpression.WavyLineEnd = this.openWavyLine;
                             this.openWavyLine.ParentEndMultiExpression = this.getMultiExpression;

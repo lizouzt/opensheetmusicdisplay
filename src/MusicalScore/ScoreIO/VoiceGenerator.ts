@@ -397,6 +397,9 @@ export class VoiceGenerator {
     //log.debug("addSingleNote called");
     let noteAlter: number = 0;
     let accidentalValue: string;
+    let accidentalSmufl: string;
+    let noteheadAccidentalSmufl: string;
+    let noteheadAccidentalText: string;
     let accidentalParentheses: boolean = false;
     let accidentalBracket: boolean = false;
     let noteAccidental: AccidentalEnum = AccidentalEnum.NONE;
@@ -456,6 +459,7 @@ export class VoiceGenerator {
           }
         } else if (noteElement.name === "accidental") {
           accidentalValue = noteElement.value;
+          accidentalSmufl = noteElement.attribute("smufl")?.value;
           const parenthesesXml: string = noteElement.attribute("parentheses")?.value;
           const bracketXml: string = noteElement.attribute("bracket")?.value;
           accidentalParentheses = parenthesesXml === "yes";
@@ -516,6 +520,10 @@ export class VoiceGenerator {
           if (noteElement.attribute("filled")) {
             noteheadFilledXml = noteElement.attribute("filled").value === "yes";
           }
+        } else if (noteElement.name === "notehead-text") {
+          const accidentalText: IXmlElement = noteElement.element("accidental-text");
+          noteheadAccidentalSmufl = accidentalText?.attribute("smufl")?.value;
+          noteheadAccidentalText = accidentalText?.value;
         }
       } catch (ex) {
         log.info("VoiceGenerator.addSingleNote: ", ex);
@@ -570,6 +578,13 @@ export class VoiceGenerator {
     note.PlaybackInstrumentId = playbackInstrumentId;
     note.AccidentalParenthesesXml = accidentalParentheses;
     note.AccidentalBracketXml = accidentalBracket;
+    if (accidentalSmufl) {
+      note.AccidentalSmufl = accidentalSmufl;
+    }
+    if (noteheadAccidentalSmufl) {
+      note.NoteheadAccidentalSmufl = noteheadAccidentalSmufl;
+      note.NoteheadAccidentalText = noteheadAccidentalText;
+    }
     if ((noteheadShapeXml !== undefined && noteheadShapeXml !== "normal") || noteheadFilledXml !== undefined) {
       note.Notehead = new Notehead(note, noteheadShapeXml, noteheadFilledXml);
     } // if normal, leave note head undefined to save processing/runtime

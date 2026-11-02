@@ -18,6 +18,7 @@ import {SystemLinesEnum} from "../Graphical/SystemLinesEnum";
 import {EngravingRules} from "../Graphical/EngravingRules";
 import {GraphicalMeasure} from "../Graphical/GraphicalMeasure";
 import { RhythmInstruction } from "./Instructions";
+import { PercussionPictogram } from "./PercussionPictogram";
 //import {BaseIdClass} from "../../Util/BaseIdClass"; // SourceMeasure originally extended BaseIdClass, but ids weren't used.
 
 /**
@@ -108,6 +109,8 @@ export class SourceMeasure {
     public MeasureNumberPrinted: number; // measureNumber if MeasureNumberXML undefined or NaN. Set in getPrintedMeasureNumber()
     public RhythmPrinted: RhythmInstruction; // the rhythm printed (rendered) in this measure
     public multipleRestMeasures: number; // usually undefined (0), unless "multiple-rest" given in XML (e.g. 4 measure rest)
+    /** MusicXML percussion pictograms on a direction. Stored only; the SMuFL glyphs are not in the font. */
+    public PercussionPictograms: PercussionPictogram[] = [];
     // public multipleRestMeasuresPerStaff: Dictionary<number, number>; // key: staffId. value: how many rest measures
     /** MusicXML measure-repeat declarations indexed by global staff. */
     public MeasureRepeatInstructions: Map<number, MeasureRepeatInstruction[]> = new Map<number, MeasureRepeatInstruction[]>();

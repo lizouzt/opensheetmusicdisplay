@@ -9,4 +9,6 @@ export class WavyLine extends AbstractExpression {
 
     public ParentStartMultiExpression: MultiExpression;
     public ParentEndMultiExpression: MultiExpression;
+    /** MusicXML wavy-line@smufl. The font has no wiggleTrill glyph, so the drawn wave stays the default one. */
+    public Smufl: string;
 }

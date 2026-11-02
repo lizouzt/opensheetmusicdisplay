@@ -17,6 +17,8 @@ export class UnknownExpression extends AbstractExpression {
     private staffNumber: number;
     public fontStyle: FontStyles;
     public defaultYXml: number;
+    /** MusicXML enclosure shape, for example "inverted-bracket". */
+    public Enclosure: string;
 
     public get Label(): string {
         return this.label;

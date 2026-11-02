@@ -5,6 +5,7 @@ import { RectangleF2D } from "../../../Common/DataObjects/RectangleF2D";
 import { VexFlowMeasure } from "./VexFlowMeasure";
 import { PointF2D } from "../../../Common/DataObjects/PointF2D";
 import { GraphicalLabel } from "../GraphicalLabel";
+import { BoundingBox } from "../BoundingBox";
 import { VexFlowTextMeasurer } from "./VexFlowTextMeasurer";
 import { MusicSystem } from "../MusicSystem";
 import { GraphicalObject } from "../GraphicalObject";
@@ -596,14 +597,31 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
     /** Draws a line in the current backend. Only usable while pages are drawn sequentially, because backend reference is updated in that process.
      *  To add your own lines after rendering, use DrawOverlayLine.
      */
-    protected drawLine(start: PointF2D, stop: PointF2D, color: string = "#000000FF", lineWidth: number = 0.2): Node {
+    protected drawLine(start: PointF2D, stop: PointF2D, color: string = "#000000FF", lineWidth: number = 0.2, id?: string): Node {
         // TODO maybe the backend should be given as an argument here as well, otherwise this can't be used after rendering of multiple pages is done.
         start = this.applyScreenTransformation(start);
         stop = this.applyScreenTransformation(stop);
         /*if (!this.backend) {
             this.backend = this.backends[0];
         }*/
-        return this.backend.renderLine(start, stop, color, lineWidth * unitInPixels);
+        return this.backend.renderLine(start, stop, color, lineWidth * unitInPixels, id);
+    }
+
+    /**
+     * A MusicXML inverted-bracket is a rectangle around the text with the top side left open.
+     * The label anchor is the bottom centre for the usual words alignment.
+     */
+    private drawInvertedBracket(label: GraphicalLabel): void {
+        const box: BoundingBox = label.PositionAndShape;
+        const anchor: PointF2D = box.AbsolutePosition;
+        const pad: number = 0.2;
+        const left: number = anchor.x + box.BorderLeft - pad;
+        const right: number = anchor.x + box.BorderRight + pad;
+        const top: number = anchor.y + box.BorderTop - pad;
+        const bottom: number = anchor.y + box.BorderBottom + pad;
+        this.drawLine(new PointF2D(left, top), new PointF2D(left, bottom), "#000000", 0.12, "inverted-bracket-left");
+        this.drawLine(new PointF2D(left, bottom), new PointF2D(right, bottom), "#000000", 0.12, "inverted-bracket-bottom");
+        this.drawLine(new PointF2D(right, bottom), new PointF2D(right, top), "#000000", 0.12, "inverted-bracket-right");
     }
 
     /** Lets a user/developer draw an overlay line on the score. Use this instead of drawLine, which is for OSMD internally only.
@@ -874,6 +892,9 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
             } else if (abstractGraphicalExpression instanceof GraphicalUnknownExpression) {
                 const label: GraphicalLabel = abstractGraphicalExpression.Label;
                 label.SVGNode = this.drawLabel(label, <number>GraphicalLayers.Notes);
+                if (abstractGraphicalExpression.Enclosure === "inverted-bracket") {
+                    this.drawInvertedBracket(label);
+                }
             } else {
                 log.warn("Unkown type of expression!");
             }

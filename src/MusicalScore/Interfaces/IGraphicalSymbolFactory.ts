@@ -71,4 +71,6 @@ export interface IGraphicalSymbolFactory {
         graphicalStaffEntry: GraphicalStaffEntry,
         keyInstruction: KeyInstruction,
         transposeHalftones: number): void;
+
+    createFiguredBass(sourceStaffEntry: SourceStaffEntry, graphicalStaffEntry: GraphicalStaffEntry): void;
 }

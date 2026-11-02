@@ -21,6 +21,7 @@ import log from "loglevel";
 import {MidiInstrument} from "../VoiceData/Instructions/ClefInstruction";
 import {ChordSymbolReader} from "./MusicSymbolModules/ChordSymbolReader";
 import {ChordSymbolContainer} from "../VoiceData/ChordSymbolContainer";
+import {FiguredBass} from "../VoiceData/FiguredBass";
 import {ExpressionReader} from "./MusicSymbolModules/ExpressionReader";
 import {RepetitionInstructionReader} from "./MusicSymbolModules/RepetitionInstructionReader";
 import {SlurReader} from "./MusicSymbolModules/SlurReader";
@@ -598,6 +599,8 @@ export class InstrumentReader {
             xmlNode, this.musicSheet, this.activeKeys[noteStaff - 1]);
           chord.SystemRelation = xmlNode.attribute("system")?.value;
           this.currentStaffEntry.ChordContainers.push(chord);
+        } else if (xmlNode.name === "figured-bass") {
+          this.readFiguredBass(xmlNode, currentFraction);
         }
         this.measureEndFraction = Fraction.max(this.measureEndFraction, currentFraction).clone();
       }
@@ -1898,6 +1901,46 @@ export class InstrumentReader {
       return Math.max(0, this.instrument.Staves.length - 1);
     }
     return fallbackIndex < 0 ? 0 : fallbackIndex;
+  }
+
+  /**
+   * MusicXML figured bass sits at the current position, like harmony. The duration does not move the cursor.
+   * Figures are stacked top to bottom. halign, valign and placement choose where the block sits.
+   */
+  private readFiguredBass(xmlNode: IXmlElement, currentFraction: Fraction): void {
+    const noteStaff: number = this.staffIndexForSystem(xmlNode, this.getNoteStaff(xmlNode) - 1) + 1;
+    this.currentStaff = this.instrument.Staves[noteStaff - 1];
+    const staffEntry: SourceStaffEntry = this.currentMeasure.findOrCreateStaffEntry(
+      currentFraction.clone(), this.inSourceMeasureInstrumentIndex + noteStaff - 1, this.currentStaff).staffEntry;
+    const figuredBass: FiguredBass = new FiguredBass();
+    const halign: string = xmlNode.attribute("halign")?.value;
+    const valign: string = xmlNode.attribute("valign")?.value;
+    if (halign === "center" || halign === "right" || halign === "left") {
+      figuredBass.HAlign = halign;
+    }
+    if (valign === "top" || valign === "middle" || valign === "bottom") {
+      figuredBass.VAlign = valign;
+    }
+    if (xmlNode.attribute("placement")?.value === "above") {
+      figuredBass.Placement = "above";
+    }
+    figuredBass.PrintObject = xmlNode.attribute("print-object")?.value !== "no";
+    const parentheses: boolean = xmlNode.attribute("parentheses")?.value === "yes";
+    for (const figure of xmlNode.elements("figure")) {
+      const prefix: string = figure.element("prefix")?.value ?? "";
+      const number: string = figure.element("figure-number")?.value ?? "";
+      const suffix: string = figure.element("suffix")?.value ?? "";
+      let line: string = prefix + number + suffix;
+      if (parentheses || figure.attribute("parentheses")?.value === "yes") {
+        line = "(" + line + ")";
+      }
+      if (line) {
+        figuredBass.Figures.push(line);
+      }
+    }
+    if (figuredBass.Figures.length > 0) {
+      staffEntry.FiguredBass.push(figuredBass);
+    }
   }
 
   private getNoteStaff(xmlNode: IXmlElement): number {

@@ -33,6 +33,8 @@ import { VexFlowMultiRestMeasure } from "./VexFlowMultiRestMeasure";
 import { BoundingBox } from "../BoundingBox";
 import { PlacementEnum } from "../../VoiceData/Expressions/AbstractExpression";
 import { VexFlowKeySignatureNote } from "./VexFlowKeySignatureNote";
+import { PointF2D } from "../../../Common/DataObjects/PointF2D";
+import { Label } from "../../Label";
 
 export class VexFlowGraphicalSymbolFactory implements IGraphicalSymbolFactory {
     /**
@@ -268,6 +270,26 @@ export class VexFlowGraphicalSymbolFactory implements IGraphicalSymbolFactory {
             graphicalStaffEntry.graphicalChordContainers.push(graphicalChordSymbolContainer);
 
             xShift += graphicalLabel.PositionAndShape.Size.width + chordSymbolSpacing;
+        }
+    }
+
+    /** Draws figured bass as text. The anchor stays on the correct side of the staff for every valign. */
+    public createFiguredBass(sourceStaffEntry: SourceStaffEntry, graphicalStaffEntry: GraphicalStaffEntry): void {
+        const rules: EngravingRules = graphicalStaffEntry.parentMeasure.parentSourceMeasure.Rules;
+        const fontHeight: number = 2;
+        const gap: number = 0.4;
+        for (const figuredBass of sourceStaffEntry.FiguredBass) {
+            if (!figuredBass.PrintObject || figuredBass.Figures.length === 0) {
+                continue;
+            }
+            const label: GraphicalLabel = new GraphicalLabel(
+                new Label(figuredBass.text()), fontHeight, figuredBass.textAlignment(), rules, graphicalStaffEntry.PositionAndShape);
+            const anchorY: number = figuredBass.Placement === "above"
+                ? -(fontHeight + gap)
+                : rules.StaffHeight + fontHeight + gap;
+            label.PositionAndShape.RelativePosition = new PointF2D(0, anchorY);
+            label.setLabelPositionAndShapeBorders();
+            graphicalStaffEntry.FiguredBassLabels.push(label);
         }
     }
 

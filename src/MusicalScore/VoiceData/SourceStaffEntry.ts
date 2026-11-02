@@ -6,6 +6,7 @@ import {VoiceEntry} from "./VoiceEntry";
 import {Note} from "./Note";
 import {StaffEntryLink} from "./StaffEntryLink";
 import {ChordSymbolContainer} from "./ChordSymbolContainer";
+import {FiguredBass} from "./FiguredBass";
 import {ClefInstruction} from "./Instructions/ClefInstruction";
 import {KeyInstruction} from "./Instructions/KeyInstruction";
 import {RhythmInstruction} from "./Instructions/RhythmInstruction";
@@ -25,6 +26,7 @@ export class SourceStaffEntry {
     private staffEntryLink: StaffEntryLink;
     private instructions: AbstractNotationInstruction[] = [];
     private chordSymbolContainers: ChordSymbolContainer[] = [];
+    private figuredBass: FiguredBass[] = [];
 
     public get ParentStaff(): Staff {
         return this.parentStaff;
@@ -78,6 +80,10 @@ export class SourceStaffEntry {
 
     public set ChordContainers(value: ChordSymbolContainer[]) {
         this.chordSymbolContainers = value;
+    }
+
+    public get FiguredBass(): FiguredBass[] {
+        return this.figuredBass;
     }
 
     // public removeAllInstructionsOfType(type: AbstractNotationInstruction): number {

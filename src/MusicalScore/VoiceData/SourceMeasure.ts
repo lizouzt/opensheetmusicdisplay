@@ -695,7 +695,7 @@ export class SourceMeasure {
                 if (!staffEntry || !staffEntry.ParentStaff.isVisible()) {
                     continue; // ignore notes in invisible instruments (instruments not shown)
                 }
-                if (staffEntry.ChordContainers.length > 0) {
+                if (staffEntry.ChordContainers.length > 0 || staffEntry.FiguredBass.length > 0) {
                     return false;
                 }
                 if (staffEntry.Instructions.some(instruction => instruction instanceof KeyInstruction)) {

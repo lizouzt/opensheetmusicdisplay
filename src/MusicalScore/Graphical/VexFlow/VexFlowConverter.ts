@@ -530,6 +530,11 @@ export class VexFlowConverter {
             vfnoteStruct.glyph_font_scale = VF.DEFAULT_NOTATION_FONT_SCALE * VF.GraceNote.SCALE;
             vfnoteStruct.stroke_px = VF.GraceNote.LEDGER_LINE_OFFSET;
         }
+        const notationScale: number = gve.parentStaffEntry?.parentMeasure?.NotationScale ?? 1;
+        if (notationScale !== 1) {
+            const baseFontScale: number = vfnoteStruct.glyph_font_scale ?? VF.DEFAULT_NOTATION_FONT_SCALE;
+            vfnoteStruct.glyph_font_scale = baseFontScale * notationScale;
+        }
 
         if (gve.parentVoiceEntry.IsGrace || gve.notes[0].sourceNote.IsCueNote) {
             vfnote = new VF.GraceNote(vfnoteStruct);
@@ -817,6 +822,11 @@ export class VexFlowConverter {
 
         for (let i: number = 0, len: number = numDots; i < len; ++i) {
             vfnote.addDotToAll();
+        }
+        if (notationScale !== 1 && !gve.parentVoiceEntry.IsGrace && !firstNote.IsCueNote && vfnote.hasStem()) {
+            const unscaledStem: number = (VF.Stem as any).HEIGHT + vfnote.getStemExtension();
+            (vfnote as any).setStemLength(unscaledStem * notationScale);
+            vfnote.getStem()?.setExtension(vfnote.getStemExtension());
         }
         return vfnote;
     }
@@ -1330,7 +1340,7 @@ export class VexFlowConverter {
      * @returns {VF.TimeSignature}
      * @constructor
      */
-    public static TimeSignature(rhythm: RhythmInstruction): VF.TimeSignature {
+    public static TimeSignature(rhythm: RhythmInstruction, notationScale: number = 1): VF.TimeSignature {
         let timeSpec: string;
         switch (rhythm.SymbolEnum) {
             case RhythmSymbolEnum.NONE:
@@ -1344,7 +1354,28 @@ export class VexFlowConverter {
                 break;
             default:
         }
-        return new VF.TimeSignature(timeSpec);
+        const timeSig: VF.TimeSignature = new VF.TimeSignature(timeSpec);
+        if (notationScale !== 1 && timeSpec) {
+            VexFlowConverter.scaleTimeSignature(timeSig, timeSpec, notationScale);
+        }
+        return timeSig;
+    }
+
+    /** Rebuild the time-signature glyphs at notationScale. The default point size is 40 and the padding is 15. */
+    private static scaleTimeSignature(timeSig: VF.TimeSignature, timeSpec: string, notationScale: number): void {
+        const scaledPoint: number = 40 * notationScale;
+        const signature: any = timeSig;
+        if (timeSpec === "C" || timeSpec === "C|") {
+            const glyph: any = signature.getTimeSig().glyph;
+            glyph.setPoint(scaledPoint);
+            glyph.reset();
+            signature.setWidth(glyph.getMetrics().width);
+        } else {
+            signature.point = scaledPoint;
+            signature.setTimeSig(timeSpec);
+            signature.setWidth(signature.getTimeSig().glyph.getMetrics().width);
+        }
+        signature.setPadding(signature.padding * notationScale);
     }
 
     /**

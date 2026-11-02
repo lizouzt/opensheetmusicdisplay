@@ -60,11 +60,12 @@ describe("MusicXML 4.0 staff line details", () => {
         const lines: { y: number, stroke: string, width: string }[] = staffLinePaths();
         expect(lines.length, "the bottom line is not drawn").to.equal(4);
         const ys: number[] = lines.map((line: { y: number }): number => line.y).sort((a: number, b: number): number => a - b);
-        expect(ys[3] - ys[0], "the remaining lines still span three staff spaces").to.equal(30);
+        // The same staff-details set staff-size to 120, so one staff space is 12px.
+        expect(ys[3] - ys[0], "the remaining lines span three enlarged staff spaces").to.be.closeTo(36, 0.2);
         const colored: { y: number, stroke: string, width: string } = lines.find(
             (line: { stroke: string }): boolean => line.stroke === "#aa0000");
         expect(colored, "line 3 is red").to.not.equal(undefined);
-        expect(colored.width, "4 tenths is 1px").to.equal("1");
-        expect(colored.y, "line 3 is the middle of the five-line staff").to.equal(ys[0] + 20);
+        expect(colored.width, "4 tenths is still 1px").to.equal("1");
+        expect(colored.y, "line 3 is two staff spaces below the top line").to.be.closeTo(ys[0] + 24, 0.2);
     });
 });

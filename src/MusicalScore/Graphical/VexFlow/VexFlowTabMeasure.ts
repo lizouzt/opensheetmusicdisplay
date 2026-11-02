@@ -31,11 +31,17 @@ export class VexFlowTabMeasure extends VexFlowMeasure {
         //this.beginInstructionsWidth = 20 / UnitInPixels;
         //this.endInstructionsWidth = 20 / UnitInPixels;
         const stafflineCount: number = this.ParentStaff.StafflineCount ?? 6; // if undefined, 6 by default (same as Vexflow default)
-        this.stave = new VF.TabStave(0, 0, 0, {
+        const staffSpaceScale: number = this.StaffSpaceScale;
+        // TabStave's own default spacing is 13px. Leave it alone unless this staff has a staff-size.
+        const tabOptions: any = {
             space_above_staff_ln: 0,
             space_below_staff_ln: 0,
-            num_lines: stafflineCount
-        });
+            num_lines: stafflineCount,
+        };
+        if (staffSpaceScale !== 1) {
+            tabOptions.spacing_between_lines_px = 13 * staffSpaceScale;
+        }
+        this.stave = new VF.TabStave(0, 0, 0, tabOptions);
         // also see VexFlowMusicSheetDrawer.drawSheet() for some other vexflow default value settings (like default font scale)
         this.updateInstructionWidth();
     }

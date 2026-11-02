@@ -196,6 +196,7 @@ export class MusicSystemBuilder {
      */
     public calculateSystemYLayout(): void {
         for (const musicSystem of this.musicSystems) {
+            this.applyPerMeasureStaffSize(musicSystem);
             this.optimizeDistanceBetweenStaffLines(musicSystem);
         }
 
@@ -391,14 +392,15 @@ export class MusicSystemBuilder {
             boundingBox.RelativePosition = relativePosition;
             boundingBox.BorderLeft = 0.0;
             boundingBox.BorderTop = 0.0;
-            boundingBox.BorderBottom = this.rules.StaffHeight;
+            const staffHeightUnits: number = this.rules.StaffHeight;
+            boundingBox.BorderBottom = staffHeightUnits;
             for (let i: number = 0; i < 5; i++) {
                 const start: PointF2D = new PointF2D();
                 start.x = 0.0;
-                start.y = i * this.rules.StaffHeight / 4;
+                start.y = i * staffHeightUnits / 4;
                 const end: PointF2D = new PointF2D();
                 end.x = staffLine.PositionAndShape.Size.width;
-                end.y = i * this.rules.StaffHeight / 4;
+                end.y = i * staffHeightUnits / 4;
                 if (this.leadSheet) {
                     start.y = end.y = 0;
                 }
@@ -764,7 +766,7 @@ export class MusicSystemBuilder {
         }
         measure.PositionAndShape.BorderLeft = 0.0;
         measure.PositionAndShape.BorderTop = 0.0;
-        measure.PositionAndShape.BorderBottom = this.rules.StaffHeight;
+        measure.PositionAndShape.BorderBottom = this.rules.StaffHeight * measure.StaffSpaceScale;
         const width: number = this.rules.MeasureLeftMargin + measure.beginInstructionsWidth + this.rules.MeasureRightMargin;
         measure.PositionAndShape.BorderRight = width;
         // Set minimumStaffEntriesWidth so stretchMusicSystem uses a correct value (not -1 from the constructor):
@@ -1162,6 +1164,42 @@ export class MusicSystemBuilder {
     }
 
     /**
+     * A system can mix staff-size values. Reserve the tallest one on each staff so a larger
+     * measure is not covered by the staff below. A system whose measures are all 100% is left as built.
+     */
+    private applyPerMeasureStaffSize(musicSystem: MusicSystem): void {
+        let extraY: number = 0;
+        for (let i: number = 0; i < musicSystem.StaffLines.length; i++) {
+            const staffLine: StaffLine = musicSystem.StaffLines[i];
+            if (extraY !== 0) {
+                staffLine.PositionAndShape.RelativePosition.y += extraY;
+            }
+            const maxScale: number = this.maxStaffSpaceScale(staffLine);
+            if (maxScale === 1) {
+                continue;
+            }
+            const previousBottom: number = staffLine.PositionAndShape.BorderBottom;
+            staffLine.growByStaffSpaceScale(maxScale, this.leadSheet);
+            extraY += staffLine.PositionAndShape.BorderBottom - previousBottom;
+        }
+        if (extraY !== 0) {
+            musicSystem.PositionAndShape.BorderBottom += extraY;
+        }
+    }
+
+    private maxStaffSpaceScale(staffLine: StaffLine): number {
+        let maxScale: number = 1;
+        const measures: GraphicalMeasure[] = staffLine.Measures;
+        for (let i: number = 0; i < measures.length; i++) {
+            const scale: number = measures[i].StaffSpaceScale;
+            if (scale > maxScale) {
+                maxScale = scale;
+            }
+        }
+        return maxScale;
+    }
+
+    /**
      * This method checks the distances between any two consecutive StaffLines of a System and if needed, shifts the lower one down.
      * @param musicSystem
      */
@@ -1190,7 +1228,12 @@ export class MusicSystemBuilder {
                 // 2. Add user defined distance between sky bottom line
                 maxDistance += this.rules.MinSkyBottomDistBetweenStaves;
                 // 3. Take the maximum between previous value and user defined value for staff line minimum distance
-                maxDistance = Math.max(maxDistance, this.rules.StaffHeight + this.rules.MinimumStaffLineDistance);
+                const upperStaffScale: number = musicSystem.StaffLines[i].AppliedStaffSpaceScale;
+                let staffMinimum: number = this.rules.StaffHeight * upperStaffScale + this.rules.MinimumStaffLineDistance;
+                if (upperStaffScale !== 1) {
+                    staffMinimum = Math.max(staffMinimum, musicSystem.StaffLines[i].StaffHeight + this.rules.MinimumStaffLineDistance);
+                }
+                maxDistance = Math.max(maxDistance, staffMinimum);
                 if (this.rules.SnapStafflinesToCrispPixels) {
                     // Round to whole pixels (0.1 units): all stafflines of the system then share the same
                     // sub-pixel phase, which calculateMusicSystemsRelativePositions snaps to crisp

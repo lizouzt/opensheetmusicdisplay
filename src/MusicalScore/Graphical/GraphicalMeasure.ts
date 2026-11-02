@@ -89,6 +89,31 @@ export abstract class GraphicalMeasure extends GraphicalObject {
         return this.parentStaff;
     }
 
+    /** Staff space for this measure. A cautionary measure follows the previous measure on the system. */
+    public get StaffSpaceScale(): number {
+        return this.staffSizeScale(true);
+    }
+
+    /** Notation size for this measure. A cautionary measure follows the previous measure on the system. */
+    public get NotationScale(): number {
+        return this.staffSizeScale(false);
+    }
+
+    private staffSizeScale(staffSpace: boolean): number {
+        const staffIndex: number = this.parentStaff?.idInMusicSheet;
+        if (this.parentSourceMeasure && staffIndex !== undefined) {
+            return staffSpace
+                ? this.parentSourceMeasure.getStaffSpaceScale(staffIndex)
+                : this.parentSourceMeasure.getNotationScale(staffIndex);
+        }
+        if (this.ExtraGraphicalMeasurePreviousMeasure) {
+            return staffSpace
+                ? this.ExtraGraphicalMeasurePreviousMeasure.StaffSpaceScale
+                : this.ExtraGraphicalMeasurePreviousMeasure.NotationScale;
+        }
+        return 1;
+    }
+
     public get ParentMusicSystem(): MusicSystem {
         return this.parentMusicSystem;
     }

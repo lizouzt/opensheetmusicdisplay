@@ -1069,8 +1069,9 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
         }
         for (const figuredBassLabel of staffEntry.FiguredBassLabels) {
             figuredBassLabel.SVGNode = this.drawLabel(figuredBassLabel, <number>GraphicalLayers.Notes);
-            if (figuredBassLabel.SVGNode instanceof Element) {
-                figuredBassLabel.SVGNode.classList.add("vf-figuredbass");
+            const figuredBassNode: any = figuredBassLabel.SVGNode;
+            if (typeof figuredBassNode?.classList?.add === "function") {
+                figuredBassNode.classList.add("vf-figuredbass");
             }
         }
         if (this.rules.RenderLyrics) {

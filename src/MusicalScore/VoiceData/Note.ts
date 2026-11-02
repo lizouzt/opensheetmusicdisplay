@@ -108,6 +108,12 @@ export class Note {
      * e.g. an editorial accidental. Drawn in parentheses, see VexFlowConverter.StaveNote().
      */
     public AccidentalBracketXml: boolean;
+    /** MusicXML accidental@smufl. Stored only; medieval and Kievan glyphs are not in the font. */
+    public AccidentalSmufl: string;
+    /** MusicXML notehead-text/accidental-text@smufl. Stored only. */
+    public NoteheadAccidentalSmufl: string;
+    /** Text of notehead-text/accidental-text, such as "sharp". */
+    public NoteheadAccidentalText: string;
     /** Color of the notehead currently set/desired for next render. RGB Hexadecimal, like #00FF00.
      * Needs to be stored here and not in Note.Notehead,
      * because Note.Notehead is undefined for normal Noteheads to save space and time.

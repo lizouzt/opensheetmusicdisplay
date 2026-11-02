@@ -16,6 +16,10 @@ export class OrnamentContainer {
     public AccidentalAboveXml: string;
     /** The MusicXML value of the accidental mark below, see AccidentalAboveXml. */
     public AccidentalBelowXml: string;
+    /** smufl on an accidental-mark placed above. The glyph is not drawn. */
+    public AccidentalAboveSmufl: string;
+    /** smufl on an accidental-mark placed below, or with no placement. The glyph is not drawn. */
+    public AccidentalBelowSmufl: string;
 
     public get GetOrnament(): OrnamentEnum {
         return this.ornament;

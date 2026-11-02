@@ -11,7 +11,9 @@ export class Arpeggio {
     public parentVoiceEntry: VoiceEntry;
     public notes: Note[];
     public type: ArpeggioType;
-    /** MusicXML arpeggiate@unbroken: the sign continues onto another staff of this part. Not drawn across staves. */
+    /** MusicXML arpeggiate@number. Absent means 1. Distinguishes simultaneous arpeggios. */
+    public Number: number = 1;
+    /** MusicXML arpeggiate@unbroken. When yes, the sign continues onto the next staff of this part. */
     public Unbroken: boolean = false;
 
     public addNote(note: Note): void {

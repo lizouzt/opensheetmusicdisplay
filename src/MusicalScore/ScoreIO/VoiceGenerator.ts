@@ -210,6 +210,13 @@ export class VoiceGenerator {
           if (arpeggioNode.attribute("unbroken")?.value === "yes") {
             currentArpeggio.Unbroken = true;
           }
+          const numberText: string = arpeggioNode.attribute("number")?.value;
+          if (numberText) {
+            const numberValue: number = parseInt(numberText, 10);
+            if (Number.isFinite(numberValue) && numberValue > 0) {
+              currentArpeggio.Number = numberValue;
+            }
+          }
           currentArpeggio.addNote(this.currentNote);
         }
         // check for Ties - must be the last check

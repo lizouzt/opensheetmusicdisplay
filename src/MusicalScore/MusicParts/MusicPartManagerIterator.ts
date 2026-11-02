@@ -417,9 +417,10 @@ export class MusicPartManagerIterator {
     /**
      * Starts a repetition again that lies within the repetition that jumped last: it is played with all its passes again.
      * After a D.C. or D.S., repeats are not taken again: it is played once, as its last pass (with its last ending).
+     * A repeat marked after-jump="yes" is taken again, with all its passes.
      */
     private restartNestedRepetition(repetition: Repetition): void {
-        if (this.replayedRepetitionFromWords) {
+        if (this.replayedRepetitionFromWords && !repetition.PlaysAgainAfterJump) {
             this.setRepetitionIterationCount(repetition, repetition.UserNumberOfRepetitions);
         } else {
             this.resetRepetitionIterationCount(repetition);

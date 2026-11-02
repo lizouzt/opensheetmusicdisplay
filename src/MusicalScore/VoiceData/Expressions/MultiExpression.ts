@@ -41,6 +41,10 @@ export class MultiExpression {
     public WavyLineEnd: WavyLine;
     /** MusicXML direction@system: only-top, only-bottom, also-top, also-bottom, or none. */
     public SystemRelation: string;
+    /** MusicXML direction/level text: editorial identification, not drawn. */
+    public LevelText: string;
+    /** MusicXML level@type: single, start, stop, or start-stop. single when the attribute is absent. */
+    public LevelType: string;
 
     public get SourceMeasureParent(): SourceMeasure {
         return this.sourceMeasure;

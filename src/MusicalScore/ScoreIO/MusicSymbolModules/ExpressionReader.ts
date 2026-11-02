@@ -291,6 +291,20 @@ export class ExpressionReader {
                 continue;
             }
         }
+        this.readLevel(directionNode, currentMeasure);
+    }
+    /**
+     * MusicXML <level> on a direction: editorial text and whether it applies to a single symbol or the start or end of a series.
+     * The text is kept on the expression. It is not drawn; parentheses and brackets around an editorial symbol are not drawn either.
+     */
+    private readLevel(directionNode: IXmlElement, currentMeasure: SourceMeasure): void {
+        const levelNode: IXmlElement = directionNode.element("level");
+        if (!levelNode) {
+            return;
+        }
+        this.createNewMultiExpressionIfNeeded(currentMeasure, -1);
+        this.getMultiExpression.LevelText = levelNode.value?.trim();
+        this.getMultiExpression.LevelType = levelNode.attribute("type")?.value ?? "single";
     }
     /** Usually called at end of last measure. */
     public closeOpenExpressions(sourceMeasure: SourceMeasure, timestamp: Fraction): void {

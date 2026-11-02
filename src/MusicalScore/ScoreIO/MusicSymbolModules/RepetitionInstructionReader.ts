@@ -34,6 +34,7 @@ export class RepetitionInstructionReader {
       let location: string = "";
       let hasRepeat: boolean = false;
       let direction: string = "";
+      let afterJump: boolean = false;
       let type: string = "";
       let style: string = "";
       let endingSystem: string;
@@ -59,6 +60,7 @@ export class RepetitionInstructionReader {
         if ("repeat" === childNode.name && childNode.hasAttributes) {
           hasRepeat = true;
           direction = childNode.attribute("direction").value;
+          afterJump = childNode.attribute("after-jump")?.value === "yes";
         } else if ( "ending" === childNode.name && childNode.hasAttributes &&
                     childNode.attribute("type") !== undefined && childNode.attribute("number")) {
           if (childNode.attribute("print-object")?.value === "no") {
@@ -134,6 +136,7 @@ export class RepetitionInstructionReader {
           }
           if (direction === "backward") {
             const newInstruction: RepetitionInstruction = new RepetitionInstruction(this.currentMeasureIndex, RepetitionInstructionEnum.BackJumpLine);
+            newInstruction.AfterJump = afterJump;
             this.addInstruction(this.repetitionInstructions, newInstruction);
           }
         }

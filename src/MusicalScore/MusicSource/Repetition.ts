@@ -123,6 +123,10 @@ export class Repetition extends PartListEntry /*implements IRepetition*/ {
     public set FromWords(value: boolean) {
         this.fromWords = value;
     }
+    /** A backward repeat of this repetition is marked after-jump="yes", so it is played again after a D.C. or D.S. */
+    public get PlaysAgainAfterJump(): boolean {
+        return this.backwardJumpInstructions.some((instruction: RepetitionInstruction): boolean => instruction.AfterJump);
+    }
     public get AbsoluteTimestamp(): Fraction {
         return Fraction.createFromFraction(this.musicSheet2.SourceMeasures[this.startMarker.measureIndex].AbsoluteTimestamp);
     }

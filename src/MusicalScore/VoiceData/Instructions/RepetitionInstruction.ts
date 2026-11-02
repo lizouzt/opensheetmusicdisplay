@@ -65,6 +65,8 @@ export class RepetitionInstruction /*implements IComparable*/ {
     public parentRepetition: Repetition;
     /** How many times this should be repeated */
     public Times: number;
+    /** MusicXML repeat@after-jump: play this repeat again after a D.C. or D.S. Absent means no. */
+    public AfterJump: boolean = false;
     /**
      * The words of the score, drawn instead of the instruction's label (e.g. "D.C."), where the label goes,
      * as they say more than the label or say it in another language, e.g. "D.C. senza replica", "Menuetto D.C. al Fine" or "Fin".

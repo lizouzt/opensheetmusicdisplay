@@ -644,7 +644,8 @@ export class MusicSheetReader /*implements IMusicSheetReader*/ {
                     }
                 }
                 if (sourceStaffEntry !== undefined && sourceStaffEntry.VoiceEntries.length === 0 &&
-                    sourceStaffEntry.ChordContainers.length === 0 && sourceStaffEntry.Instructions.length === 0) {
+                    sourceStaffEntry.ChordContainers.length === 0 && sourceStaffEntry.FiguredBass.length === 0 &&
+                    sourceStaffEntry.Instructions.length === 0) {
                     this.currentMeasure.VerticalSourceStaffEntryContainers[i].StaffEntries[j] = undefined;
                 }
             }

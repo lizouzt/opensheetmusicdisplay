@@ -3378,6 +3378,9 @@ export abstract class MusicSheetCalculator {
                         accidentalCalculator.ActiveKeyInstruction,
                         this.graphicalMusicSheet.ParentMusicSheet.Transpose);
                 }
+                if (sourceStaffEntry.FiguredBass.length > 0) {
+                    MusicSheetCalculator.symbolFactory.createFiguredBass(sourceStaffEntry, graphicalStaffEntry);
+                }
             }
         }
 

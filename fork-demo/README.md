@@ -13,6 +13,8 @@
 
 用任意静态服务器打开 `fork-demo/dist/index.html`。不要用 `file://`，浏览器会拦截页面去读取样例文件。地址栏加上 `?sample=文件名` 可以直接打开清单中的某一个样例。
 
+`release` 分支上的样例检查通过后，同一份 `fork-demo/dist` 会发布到 <https://lizouzt.github.io/opensheetmusicdisplay/>。这不是上游的 <https://opensheetmusicdisplay.github.io/demo/>。
+
 ## 清单
 
 作者列取 `git log --diff-filter=A --format='%an %ad' --date=iso -- <file>` 的最早一行。发布检查是 `node tools/check-release-samples.mjs`。

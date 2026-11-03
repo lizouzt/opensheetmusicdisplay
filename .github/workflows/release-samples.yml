@@ -5,6 +5,12 @@ on:
     branches: [release]
   pull_request:
     branches: [release]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   check:
@@ -31,3 +37,21 @@ jobs:
 
       - name: Check release samples
         run: node tools/check-release-samples.mjs
+
+      - name: Upload fork demo
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: fork-demo/dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: check
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

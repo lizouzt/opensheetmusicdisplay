@@ -1,7 +1,7 @@
 {
   "name": "opensheetmusicdisplay",
   "version": "2.2.1",
-  "description": "An open source JavaScript engine for displaying MusicXML based on VexFlow.",
+  "description": "Fork of OpenSheetMusicDisplay that adds MusicXML 4.0 and 4.1 draft support on the upstream engine. Not an official OSMD release.",
   "main": "build/opensheetmusicdisplay.min.js",
   "types": "build/dist/src/index.d.ts",
   "scripts": {
@@ -60,20 +60,21 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/opensheetmusicdisplay/opensheetmusicdisplay"
+    "url": "https://github.com/lizouzt/opensheetmusicdisplay"
   },
   "keywords": [
     "sheet",
     "music",
     "vexflow",
-    "musicxml"
+    "musicxml",
+    "musicxml4"
   ],
-  "author": "PhonicScore",
+  "author": "PhonicScore (upstream OSMD); MusicXML 4.0/4.1 support added in this fork",
   "license": "BSD-3-Clause",
   "bugs": {
-    "url": "https://github.com/opensheetmusicdisplay/opensheetmusicdisplay/issues"
+    "url": "https://github.com/lizouzt/opensheetmusicdisplay/issues"
   },
-  "homepage": "https://opensheetmusicdisplay.org",
+  "homepage": "https://github.com/lizouzt/opensheetmusicdisplay#readme",
   "dependencies": {
     "@types/vexflow": "^1.2.38",
     "jszip": "3.10.1",

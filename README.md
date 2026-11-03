@@ -2,7 +2,7 @@
 <!--img alt="Brought to you by PhonicScore" src="https://phonicscore.com/neu/wp-content/uploads/2018/06/phonicscore_brown.svg"/-->
 
 
-# <img alt="OSMD logo" align="center" height="40" src="https://github.com/opensheetmusicdisplay/opensheetmusicdisplay/assets/33069673/a83dc850-65c2-4c7a-8836-eb75cefc006f"/> OpenSheetMusicDisplay (OSMD)
+# OpenSheetMusicDisplay 的 MusicXML 4 fork
 <!--# <img alt="OSMD logo" align="center" src="https://opensheetmusicdisplay.org/wp-content/uploads/2016/05/OSMD_3_icon_only.svg"/> OpenSheetMusicDisplay (OSMD)-->
 <!--- # <img alt="OSMD logo" align="center" src="https://opensheetmusicdisplay.org/wp-content/uploads/sites/2/2021/02/OSMD_logo_box.svg" height="40"/> OpenSheetMusicDisplay (OSMD) -->
 
@@ -14,29 +14,19 @@
   </tr>
 </table-->
 
-### A MusicXML renderer for the Browser
-[opensheetmusicdisplay.org](https://opensheetmusicdisplay.org/)<br>
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/opensheetmusicdisplay/opensheetmusicdisplay?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Appveyor Build status](https://ci.appveyor.com/api/projects/status/r88lnffso55nq1ko?svg=true)](https://ci.appveyor.com/project/sebastianhaas/opensheetmusicdisplay/branch/master)
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)<br>
+本仓库是 [OpenSheetMusicDisplay](https://github.com/opensheetmusicdisplay/opensheetmusicdisplay)（OSMD，PhonicScore）的 fork。它在上游引擎上补上 MusicXML 4.0 和 4.1 草案的读取与绘制，改动只放在本仓库的 `release` 分支，不作为官方 OSMD 发布。
 
-<!-- [![Greenkeeper badge](https://badges.greenkeeper.io/opensheetmusicdisplay/opensheetmusicdisplay.svg)](https://greenkeeper.io/) --> <!-- move to Snyk -->
-<!-- [![Dependency Status](https://david-dm.org/opensheetmusicdisplay/opensheetmusicdisplay/status.svg)](https://david-dm.org/opensheetmusicdisplay/opensheetmusicdisplay) --> <!-- often returns error "no healthy upstream" -->
-<!-- [![Travis Build Status](https://travis-ci.org/opensheetmusicdisplay/opensheetmusicdisplay.svg?branch=master)](https://travis-ci.org/opensheetmusicdisplay/opensheetmusicdisplay) --> <!-- Migrate to travis-ci.com -->
-[About OSMD](#about-osmd) • [Demo](#demo) • [Key Features](#key-features) • [Limitations](#limitations) • [How to Use OSMD](#how-to-use-osmd) • [Sponsor OSMD](#sponsor-osmd) • [About Us](#about-us) • [Get In Touch](#get-in-touch)
+上游基线是 `develop` 的 `a308225e`（2.2.1-dev）。那个版本渲染 MusicXML 3.x，4.0 / 4.1 新增的元素和属性大多没有读。本 fork 补上的是这些缺口，例如：`.mxl` 里多个 rootfile 时选取第一份 MusicXML、`part-link`、音乐会调与分谱视图、`<measure-numbering>`、踏板 `discontinue` / `resume`、级数和弦、`<line-detail>`、`<staff-size>`、`<staff-divide>`，以及 4.1 草案的多次 `part-symbol`、叠置变音、`voice-direction` 和 timewise 转 partwise。听音、摇摆、演奏者、乐器声响、换乐器和 IPA 只写入模型。逐条结论在 [支持矩阵](fork-docs/musicxml4-support-matrix.md)：80 行里完整支持 59、部分支持 16、不支持 0。没有重写渲染引擎，也没有更换 VexFlow。
 
-:star: - Star us on Github - It really helps us a lot!<br>
-:pray: - [Become our Sponsor](#sponsor-osmd) - Support our work and receive awesome perks!
-
-## Fork note
-
-本仓库是 [OpenSheetMusicDisplay](https://github.com/opensheetmusicdisplay/opensheetmusicdisplay) 的 fork，不是官方 OSMD 项目。
+`develop` 只跟随上游 `develop`。这些 4.0 / 4.1 改动不再向原项目提交拉取请求。
 
 `test/data` 和 `demo/` 中的乐谱样例来自上游 OSMD 仓库，仅用于测试。它们的版权归各自权利人所有，不属于本项目的发布内容，也不在本项目许可证的覆盖范围内。
 
 Scores in `test/data` and `demo/` come from the upstream OSMD repository and are kept for tests only. Copyright stays with the rightsholders. Those scores are not published content of this project and are not covered by this project's license.
 
-公开 demo、npm 包和我们发布的图片只使用 [`fork-docs/release-samples.csv`](fork-docs/release-samples.csv) 列出的乐谱。上游样例的视觉回归结果只作文字说明。对外发布的截图只来自本 fork 的 `test_mxl4_*` 文件。公开 demo 由 [`fork-demo/`](fork-demo/README.md) 构建，不部署上游 `demo/`，也不使用把整个 `test/data` 挂到 `/samples` 的开发服务器。
+公开 demo、npm 包和我们发布的图片只使用 [`fork-docs/release-samples.csv`](fork-docs/release-samples.csv) 列出的乐谱。上游样例的视觉回归结果只作文字说明。对外发布的截图只来自本 fork 的 `test_mxl4_*` 文件。公开 demo 由 [`fork-demo/`](fork-demo/README.md) 构建，不部署上游 `demo/`，也不使用把整个 `test/data` 挂到 `/samples` 的开发服务器。`package.json` 的包名仍是上游的 `opensheetmusicdisplay`，本 fork 还没有单独的 npm 包名。
+
+从下一节起是上游 README 的原文，讲的是 PhonicScore 的 OSMD。其中的演示站、赞助和联系方式属于原项目。
 
 ## About OSMD
 

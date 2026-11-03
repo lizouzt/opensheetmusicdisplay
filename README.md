@@ -24,7 +24,7 @@
 
 Scores in `test/data` and `demo/` come from the upstream OSMD repository and are kept for tests only. Copyright stays with the rightsholders. Those scores are not published content of this project and are not covered by this project's license.
 
-公开 demo、npm 包和我们发布的图片只使用 [`fork-docs/release-samples.csv`](fork-docs/release-samples.csv) 列出的乐谱。上游样例的视觉回归结果只作文字说明。对外发布的截图只来自本 fork 的 `test_mxl4_*` 文件。公开 demo 由 [`fork-demo/`](fork-demo/README.md) 构建，不部署上游 `demo/`，也不使用把整个 `test/data` 挂到 `/samples` 的开发服务器。`package.json` 的包名仍是上游的 `opensheetmusicdisplay`，本 fork 还没有单独的 npm 包名。
+公开 demo、npm 包和我们发布的图片只使用 [`fork-docs/release-samples.csv`](fork-docs/release-samples.csv) 列出的乐谱。上游样例的视觉回归结果只作文字说明。对外发布的截图只来自本 fork 的 `test_mxl4_*` 文件。公开 demo 由 [`fork-demo/`](fork-demo/README.md) 构建并发布到 <https://lizouzt.github.io/opensheetmusicdisplay/>，不部署上游 `demo/`，也不使用把整个 `test/data` 挂到 `/samples` 的开发服务器。上游的公开 demo 仍在 <https://opensheetmusicdisplay.github.io/demo/>，那是原项目的网站。`package.json` 的包名仍是上游的 `opensheetmusicdisplay`，本 fork 还没有单独的 npm 包名。
 
 从下一节起是上游 README 的原文，讲的是 PhonicScore 的 OSMD。其中的演示站、赞助和联系方式属于原项目。
 

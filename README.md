@@ -28,6 +28,16 @@
 :star: - Star us on Github - It really helps us a lot!<br>
 :pray: - [Become our Sponsor](#sponsor-osmd) - Support our work and receive awesome perks!
 
+## Fork note
+
+本仓库是 [OpenSheetMusicDisplay](https://github.com/opensheetmusicdisplay/opensheetmusicdisplay) 的 fork，不是官方 OSMD 项目。
+
+`test/data` 和 `demo/` 中的乐谱样例来自上游 OSMD 仓库，仅用于测试。它们的版权归各自权利人所有，不属于本项目的发布内容，也不在本项目许可证的覆盖范围内。
+
+Scores in `test/data` and `demo/` come from the upstream OSMD repository and are kept for tests only. Copyright stays with the rightsholders. Those scores are not published content of this project and are not covered by this project's license.
+
+公开 demo、npm 包和我们发布的图片只使用 [`fork-docs/release-samples.csv`](fork-docs/release-samples.csv) 列出的乐谱。上游样例的视觉回归结果只作文字说明。对外发布的截图只来自本 fork 的 `test_mxl4_*` 文件。公开 demo 由 [`fork-demo/`](fork-demo/README.md) 构建，不部署上游 `demo/`，也不使用把整个 `test/data` 挂到 `/samples` 的开发服务器。
+
 ## About OSMD
 
 <img title="How OSMD can look in the browser&#xA;(Mockup, OSMD on its own does not support playback)" src="https://user-images.githubusercontent.com/33069673/106186552-bd191300-61a4-11eb-8814-07019fcf1d5b.png" style="max-width: 100%; max-height: 100vh; width: auto; margin: auto;">

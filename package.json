@@ -10,6 +10,7 @@
     "eslint": "eslint .",
     "lint": "npm run eslint",
     "test": "karma start --single-run --no-auto-watch",
+    "check:release-samples": "node tools/check-release-samples.mjs",
     "test:watch": "karma start --no-single-run --auto-watch --browsers ChromeNoSecurity",
     "prebuild": "npm run prebuildVexflow",
     "prebuildVexflow": "ncp src/VexFlowPatch/src/ node_modules/vexflow/src/",

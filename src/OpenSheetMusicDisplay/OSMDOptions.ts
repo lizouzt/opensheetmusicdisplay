@@ -50,6 +50,11 @@ export interface IOSMDOptions {
     colorStemsLikeNoteheads?: boolean;
     /** Dark mode (black background, white notes). Simply sets defaultColorMusic and EngravingRules.PageBackgroundColor. */
     darkMode?: boolean;
+    /**
+     * Draw a concert score as the transposed part (part-clef and part-transpose).
+     * Default false: the file is shown as written. Must be set before load().
+     */
+    displayPartView?: boolean;
     /** Default color for all musical elements including key signature etc. Can be used for dark mode etc. Default undefined. */
     defaultColorMusic?: string;
     /** Default color for a note head (without stem). Default black (undefined).

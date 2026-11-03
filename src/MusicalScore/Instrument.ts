@@ -7,6 +7,8 @@ import { SubInstrument } from "./SubInstrument";
 import { MidiInstrument } from "./VoiceData/Instructions/ClefInstruction";
 import { PartLink } from "./PartLink";
 import { PartSymbol } from "./VoiceData/PartSymbol";
+import { PartView } from "./VoiceData/PartView";
+import { ScorePlayer } from "./VoiceData/MusicXml4Annotations";
 
 export class Instrument extends InstrumentalGroup {
 
@@ -46,6 +48,10 @@ export class Instrument extends InstrumentalGroup {
     private partSymbols: PartSymbol[] = [];
     /** Default stem direction from voice-direction, keyed by MusicXML voice number. "up" or "down". */
     private voiceDirections: { [voiceId: number]: string } = {};
+    /** Concert-score for-part entries, one per staff number. */
+    private partViews: PartView[] = [];
+    /** MusicXML player entries on the score-part. */
+    private players: ScorePlayer[] = [];
 
     public get Voices(): Voice[] {
         return this.voices;
@@ -161,6 +167,31 @@ export class Instrument extends InstrumentalGroup {
     }
     public setVoiceDirection(voiceId: number, direction: string): void {
         this.voiceDirections[voiceId] = direction;
+    }
+    /** Part clefs and transpositions from for-part. Empty when the score has none. */
+    public get PartViews(): PartView[] {
+        return this.partViews;
+    }
+    public getPartView(staffNumber: number): PartView {
+        for (const view of this.partViews) {
+            if (view.staffNumber === staffNumber) {
+                return view;
+            }
+        }
+        return undefined;
+    }
+    public getOrCreatePartView(staffNumber: number): PartView {
+        let view: PartView = this.getPartView(staffNumber);
+        if (!view) {
+            view = new PartView();
+            view.staffNumber = staffNumber;
+            this.partViews.push(view);
+        }
+        return view;
+    }
+    /** Performers declared on the score-part. */
+    public get Players(): ScorePlayer[] {
+        return this.players;
     }
 
     public get Visible(): boolean {

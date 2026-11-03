@@ -15,6 +15,7 @@ import { SourceMeasure } from "./SourceMeasure";
 import { TechnicalInstruction } from "./Instructions";
 import { Glissando } from "../../MusicalScore/VoiceData/Glissando";
 import { NoteBend } from "./NoteBend";
+import { NoteListen } from "./MusicXml4Annotations";
 
 /** A numbered harmonic on one note. kind is "natural" or "artificial" when the score says so. */
 export interface NoteHarmonic {
@@ -117,6 +118,12 @@ export class Note {
     public AccidentalXmls: string[] = [];
     /** MusicXML technical/harmonic, including its number. */
     public Harmonic: NoteHarmonic;
+    /** Every instrument id on this note, in document order. PlaybackInstrumentId stays the last one. */
+    public InstrumentIds: string[] = [];
+    /** MusicXML play/ipa. Stored only; the lyric text is what gets drawn. */
+    public Ipa: string;
+    /** MusicXML listen. Stored only. */
+    public Listen: NoteListen;
     /** MusicXML notehead-text/accidental-text@smufl. Stored only. */
     public NoteheadAccidentalSmufl: string;
     /** Text of notehead-text/accidental-text, such as "sharp". */

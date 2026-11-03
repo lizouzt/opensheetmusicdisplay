@@ -148,6 +148,7 @@ export class MusicSheetReader /*implements IMusicSheetReader*/ {
         }
         this.pushSheetLabels(root, path);
         this.readLyricLanguages(root);
+        this.readConcertScore(root);
         const partlistNode: IXmlElement = root.element("part-list");
         if (!partlistNode) {
             throw new MusicSheetReadingException("Undefined partListNode");
@@ -696,6 +697,13 @@ export class MusicSheetReader /*implements IMusicSheetReader*/ {
             }
         } catch (ex) {
             log.info("MusicSheetReader.pushSheetLabels", "read title from file name", ex);
+        }
+    }
+
+    /** True when defaults/concert-score is present, including an empty element. */
+    private readConcertScore(root: IXmlElement): void {
+        if (root.element("defaults")?.element("concert-score")) {
+            this.musicSheet.IsConcertScore = true;
         }
     }
 
@@ -1251,6 +1259,18 @@ export class MusicSheetReader /*implements IMusicSheetReader*/ {
                                 if (subElement) {
                                     subInstrument.name = subElement.value;
                                     subInstrument.setMidiInstrument(subElement.value);
+                                }
+                                const soundElement: IXmlElement = partElement.element("instrument-sound");
+                                if (soundElement?.value) {
+                                    subInstrument.InstrumentSound = soundElement.value;
+                                }
+                            } else if (partElement.name === "player") {
+                                const playerId: string = partElement.attribute("id")?.value;
+                                if (playerId) {
+                                    instrument.Players.push({
+                                        id: playerId,
+                                        name: partElement.element("player-name")?.value ?? "",
+                                    });
                                 }
                             } else if (partElement.name === "midi-instrument") {
                                 let subInstrument: SubInstrument = instrument.getSubInstrument(partElement.firstAttribute.value);

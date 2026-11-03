@@ -16,6 +16,7 @@ export default defineConfig(
             ".tmp/",
             "build/",
             "demo/",
+            "fork-demo/dist/",
             "export/",
             "karma.conf.js",
             "osmd-native/",
@@ -202,7 +203,7 @@ export default defineConfig(
     },
     {
         // maintainer CLI tools, run with plain node (no build step)
-        files: ["bin/**/*.mjs"],
+        files: ["bin/**/*.mjs", "tools/**/*.mjs"],
         languageOptions: {
             globals: {
                 ...globals.node,

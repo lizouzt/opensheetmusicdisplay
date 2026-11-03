@@ -19,6 +19,7 @@ import {EngravingRules} from "../Graphical/EngravingRules";
 import {GraphicalMeasure} from "../Graphical/GraphicalMeasure";
 import { RhythmInstruction } from "./Instructions";
 import { PercussionPictogram } from "./PercussionPictogram";
+import { InstrumentChange, Listening, Swing } from "./MusicXml4Annotations";
 //import {BaseIdClass} from "../../Util/BaseIdClass"; // SourceMeasure originally extended BaseIdClass, but ids weren't used.
 
 /**
@@ -113,6 +114,12 @@ export class SourceMeasure {
     public multipleRestMeasures: number; // usually undefined (0), unless "multiple-rest" given in XML (e.g. 4 measure rest)
     /** MusicXML percussion pictograms on a direction. Stored only; the SMuFL glyphs are not in the font. */
     public PercussionPictograms: PercussionPictogram[] = [];
+    /** MusicXML swing instructions in this measure. Notation stays even. */
+    public Swings: Swing[] = [];
+    /** MusicXML listening instructions in this measure. */
+    public Listening: Listening[] = [];
+    /** MusicXML instrument-change instructions in this measure. The staff is not rewritten. */
+    public InstrumentChanges: InstrumentChange[] = [];
     // public multipleRestMeasuresPerStaff: Dictionary<number, number>; // key: staffId. value: how many rest measures
     /** MusicXML measure-repeat declarations indexed by global staff. */
     public MeasureRepeatInstructions: Map<number, MeasureRepeatInstruction[]> = new Map<number, MeasureRepeatInstruction[]>();

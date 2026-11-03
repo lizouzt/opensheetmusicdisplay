@@ -73,6 +73,15 @@ export class SubInstrument {
     public pan: number;
     public fixedKey: number;
     public name: string;
+    /** MusicXML instrument-sound id. The MIDI program guessed from the name is left alone. */
+    private instrumentSound: string;
+
+    public get InstrumentSound(): string {
+        return this.instrumentSound;
+    }
+    public set InstrumentSound(value: string) {
+        this.instrumentSound = value;
+    }
 
     private parentInstrument: Instrument;
 

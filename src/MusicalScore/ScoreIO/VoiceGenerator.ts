@@ -33,6 +33,8 @@ import { TabNote } from "../VoiceData/TabNote";
 import { PlacementEnum } from "../VoiceData/Expressions/AbstractExpression";
 import { ReaderPluginManager } from "./ReaderPluginManager";
 import { Instrument } from "../Instrument";
+import { NoteListen, readNoteListen } from "../VoiceData/MusicXml4Annotations";
+import { PartView } from "../VoiceData/PartView";
 
 export class VoiceGenerator {
   constructor(pluginManager: ReaderPluginManager, staff: Staff, voiceId: number, slurReader: SlurReader, mainVoice: Voice = undefined) {
@@ -452,6 +454,9 @@ export class VoiceGenerator {
     let noteOctave: number = 0;
     let displayOctaveUnpitched: number = 0;
     let playbackInstrumentId: string = undefined;
+    const instrumentIds: string[] = [];
+    let noteIpa: string;
+    let noteListen: NoteListen;
     let noteheadShapeXml: string = undefined;
     let noteheadFilledXml: boolean = undefined; // if undefined, the final filled parameter will be calculated from duration
 
@@ -560,6 +565,14 @@ export class VoiceGenerator {
         } else if (noteElement.name === "instrument") {
           if (noteElement.firstAttribute) {
             playbackInstrumentId = noteElement.firstAttribute.value;
+            instrumentIds.push(playbackInstrumentId);
+          }
+        } else if (noteElement.name === "listen") {
+          noteListen = readNoteListen(noteElement);
+        } else if (noteElement.name === "play") {
+          const ipa: IXmlElement = noteElement.element("ipa");
+          if (ipa?.value) {
+            noteIpa = ipa.value;
           }
         } else if (noteElement.name === "notehead") {
           noteheadShapeXml = noteElement.value;
@@ -579,6 +592,18 @@ export class VoiceGenerator {
     noteOctave -= Pitch.OctaveXmlDifference;
     if (!alterWasGiven && accidentalValues.length > 1) {
       noteAccidental = Pitch.AccidentalFromHalfTones(this.accidentalXmlHalfTones(accidentalValues));
+    }
+    if (node.element("pitch")) {
+      const alter: number = alterWasGiven ? noteAlter : Pitch.HalfTonesFromAccidental(noteAccidental);
+      const transposed: { step: NoteEnum, octave: number, accidental: AccidentalEnum } | undefined =
+        this.partViewPitch(noteStep, noteOctave + Pitch.OctaveXmlDifference, alter);
+      if (transposed) {
+        noteStep = transposed.step;
+        noteOctave = transposed.octave - Pitch.OctaveXmlDifference;
+        noteAccidental = transposed.accidental;
+        accidentalValue = undefined;
+        accidentalValues.length = 0;
+      }
     }
     const pitch: Pitch = new Pitch(noteStep, noteOctave, noteAccidental, accidentalValue);
     const noteLength: Fraction = Fraction.createFromFraction(noteDuration);
@@ -633,6 +658,13 @@ export class VoiceGenerator {
       this.handleTremoloBetweenNotes(tremoloInfo, note);
     }
     note.PlaybackInstrumentId = playbackInstrumentId;
+    note.InstrumentIds = instrumentIds;
+    if (noteIpa) {
+      note.Ipa = noteIpa;
+    }
+    if (noteListen) {
+      note.Listen = noteListen;
+    }
     note.AccidentalParenthesesXml = accidentalParentheses;
     note.AccidentalBracketXml = accidentalBracket;
     if (accidentalSmufl) {
@@ -662,6 +694,22 @@ export class VoiceGenerator {
       this.createBeam(node, note);
     }
     return note;
+  }
+
+  /**
+   * Concert pitch rewritten for the part, or undefined when the part view is off or this staff has no for-part shift.
+   * octave is the MusicXML octave.
+   */
+  private partViewPitch(step: NoteEnum, octave: number, alter: number):
+    { step: NoteEnum, octave: number, accidental: AccidentalEnum } | undefined {
+    if (!this.musicSheet.Rules?.DisplayPartView) {
+      return undefined;
+    }
+    const view: PartView = this.instrument.getPartView(this.staff.Id);
+    if (!view || (view.DiatonicSteps === 0 && view.ChromaticSteps === 0)) {
+      return undefined;
+    }
+    return PartView.transpose(step, octave, alter, view.DiatonicSteps, view.ChromaticSteps);
   }
 
   /**

@@ -1416,6 +1416,9 @@ export class OpenSheetMusicDisplay {
         if (options.setWantedStemDirectionByXml !== undefined) {
             this.rules.SetWantedStemDirectionByXml = options.setWantedStemDirectionByXml;
         }
+        if (options.displayPartView !== undefined) {
+            this.rules.DisplayPartView = options.displayPartView;
+        }
         if (options.darkMode) {
             this.rules.applyDefaultColorMusic("#FFFFFF");
             this.rules.PageBackgroundColor = "#000000";

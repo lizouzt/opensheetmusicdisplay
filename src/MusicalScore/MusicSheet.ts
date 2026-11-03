@@ -101,6 +101,8 @@ export class MusicSheet /*implements ISettableMusicSheet, IComparable<MusicSheet
     public IgnoreTempoInstructions: boolean = false;
     /** The default languages of the lyrics. A lyric's own xml:lang comes first, see LyricsEntry.language. */
     public LyricLanguages: LyricLanguage[] = [];
+    /** True when defaults contains concert-score. The written notes stay in concert pitch unless displayPartView is on. */
+    private isConcertScore: boolean = false;
 
     /**
      * Get the global index within the music sheet for this staff.
@@ -277,6 +279,13 @@ export class MusicSheet /*implements ISettableMusicSheet, IComparable<MusicSheet
     }
     public get SheetErrors(): MusicSheetErrors {
         return this.musicSheetErrors;
+    }
+    /** Whether the file declares itself a concert score. */
+    public get IsConcertScore(): boolean {
+        return this.isConcertScore;
+    }
+    public set IsConcertScore(value: boolean) {
+        this.isConcertScore = value;
     }
     public get SelectionStart(): Fraction {
         return this.selectionStart;

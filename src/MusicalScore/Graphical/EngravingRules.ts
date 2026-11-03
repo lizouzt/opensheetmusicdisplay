@@ -643,6 +643,12 @@ export class EngravingRules {
     /** This is not for tabs, but for classical scores, especially violin. */
     public StringNumberOffsetY: number;
     public NewSystemAtXMLNewSystemAttribute: boolean;
+    /**
+     * When true, a concert score is drawn as a transposed part: part-clef replaces the concert clef
+     * and written pitches move by part-transpose. Default false, so concert pitch and every other file stay put.
+     * Set this before load(); it is read while the file is parsed.
+     */
+    public DisplayPartView: boolean;
     /** Whether to begin a new system when a page break is given in XML ('new-page="yes"'), but newPageFromXML is false.
      *  Default false, because it can lead to nonsensical system breaks after a single measure,
      *  as OSMD does a different layout than the original music program exported from.
@@ -1158,6 +1164,7 @@ export class EngravingRules {
         this.RenderStringNumbersClassical = true;
         this.StringNumberOffsetY = 0.0;
         this.NewSystemAtXMLNewSystemAttribute = false;
+        this.DisplayPartView = false;
         this.NewPageAtXMLNewPageAttribute = false;
         this.NewSystemAtXMLNewPageAttribute = false;
         this.RenderXMeasuresPerLineAkaSystem = 0;

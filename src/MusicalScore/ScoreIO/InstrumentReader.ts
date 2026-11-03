@@ -33,6 +33,8 @@ import { ReaderPluginManager } from "./ReaderPluginManager";
 import { TremoloInfo } from "../VoiceData/Note";
 import { StaffDivideType } from "../VoiceData/StaffDivide";
 import { PartSymbol } from "../VoiceData/PartSymbol";
+import { PartView } from "../VoiceData/PartView";
+import { readInstrumentChange, readListening, readSwing } from "../VoiceData/MusicXml4Annotations";
 // import {Dictionary} from "typescript-collections";
 
 // FIXME: The following classes are missing
@@ -500,6 +502,7 @@ export class InstrumentReader {
             previousFraction = new Fraction(0, 1);
           }
         } else if (xmlNode.name === "direction") {
+          this.readDirectionAnnotations(xmlNode, currentFraction);
           const directionTypeNodes: IXmlElement[] = xmlNode.elements("direction-type");
           const directionTypeNode: IXmlElement = directionTypeNodes[0]; // kept for repetition handler
           // (*) MetronomeReader.readMetronomeInstructions(xmlNode, this.musicSheet, this.currentXmlMeasureIndex);
@@ -585,6 +588,7 @@ export class InstrumentReader {
           }
           // TODO do we need to process bars with left location too?
         } else if (xmlNode.name === "sound") {
+          this.readSoundAnnotations(xmlNode, currentFraction);
           // (*) MetronomeReader.readTempoInstruction(xmlNode, this.musicSheet, this.currentXmlMeasureIndex);
           try {
             if (xmlNode.attribute("tempo")) { // can be null, not just undefined!
@@ -1066,6 +1070,72 @@ export class InstrumentReader {
     return new Fraction(0, 4 * this.divisions);
   }
 
+  private clefEnumFromSign(sign: string): ClefEnum | undefined {
+    switch (sign) {
+      case "G":
+        return ClefEnum.G;
+      case "F":
+        return ClefEnum.F;
+      case "C":
+        return ClefEnum.C;
+      case "percussion":
+        return ClefEnum.percussion;
+      case "TAB":
+        return ClefEnum.TAB;
+      default:
+        return undefined;
+    }
+  }
+
+  /** Store for-part, and when the part view is on, compensate playback so the sounding pitch stays the concert pitch. */
+  private readForParts(attrNode: IXmlElement): void {
+    for (const node of attrNode.elements("for-part")) {
+      const staffNumber: number = parseInt(node.attribute("number")?.value ?? "1", 10) || 1;
+      const view: PartView = this.instrument.getOrCreatePartView(staffNumber);
+      const clef: IXmlElement = node.element("part-clef");
+      if (clef) {
+        view.clefSign = clef.element("sign")?.value;
+        const line: number = parseInt(clef.element("line")?.value ?? "", 10);
+        if (!isNaN(line)) {
+          view.clefLine = line;
+        }
+        const octave: number = parseInt(clef.element("clef-octave-change")?.value ?? "", 10);
+        view.clefOctaveChange = isNaN(octave) ? 0 : octave;
+      }
+      const transpose: IXmlElement = node.element("part-transpose");
+      if (transpose) {
+        const diatonic: number = parseInt(transpose.element("diatonic")?.value ?? "", 10);
+        const chromatic: number = parseInt(transpose.element("chromatic")?.value ?? "", 10);
+        const octaveChange: number = parseInt(transpose.element("octave-change")?.value ?? "", 10);
+        view.diatonic = isNaN(diatonic) ? 0 : diatonic;
+        view.chromatic = isNaN(chromatic) ? 0 : chromatic;
+        view.octaveChange = isNaN(octaveChange) ? 0 : octaveChange;
+      }
+    }
+  }
+
+  /** listening, swing, and instrument-change live on a direction and are not drawn. */
+  private readDirectionAnnotations(xmlNode: IXmlElement, currentFraction: Fraction): void {
+    const listening: IXmlElement = xmlNode.element("listening");
+    if (listening) {
+      this.currentMeasure.Listening.push(readListening(listening));
+    }
+    for (const sound of xmlNode.elements("sound")) {
+      this.readSoundAnnotations(sound, currentFraction);
+    }
+  }
+
+  /** swing and instrument-change on a sound element, whether it sits on a direction or directly in the measure. */
+  private readSoundAnnotations(xmlNode: IXmlElement, currentFraction: Fraction): void {
+    const swing: IXmlElement = xmlNode.element("swing");
+    if (swing) {
+      this.currentMeasure.Swings.push(readSwing(swing));
+    }
+    for (const change of xmlNode.elements("instrument-change")) {
+      this.currentMeasure.InstrumentChanges.push(readInstrumentChange(change, currentFraction.RealValue));
+    }
+  }
+
   /**
    * Add (the three basic) Notation Instructions to a list
    * @param attrNode
@@ -1079,6 +1149,7 @@ export class InstrumentReader {
         return;
       }
     }
+    this.readForParts(attrNode);
     const transposeNode: IXmlElement = attrNode.element("transpose");
     if (transposeNode) {
       // MusicXML: sounding pitch = written pitch + chromatic + 12 * octave-change.
@@ -1096,6 +1167,12 @@ export class InstrumentReader {
       // <double> clears an earlier doubling.
       const doubleNode: IXmlElement = transposeNode.element("double");
       this.instrument.PlaybackDoubling = doubleNode?.attribute("above")?.value === "yes" ? 12 : (doubleNode ? -12 : 0);
+    }
+    if (this.musicSheet.Rules?.DisplayPartView) {
+      const partView: PartView = this.instrument.getPartView(1) ?? this.instrument.PartViews[0];
+      if (partView && (partView.ChromaticSteps !== 0 || partView.DiatonicSteps !== 0)) {
+        this.instrument.PlaybackTranspose = -partView.ChromaticSteps;
+      }
     }
     const clefList: IXmlElement[] = attrNode.elements("clef");
     let errorMsg: string;
@@ -1184,6 +1261,21 @@ export class InstrumentReader {
             this.musicSheet.SheetErrors.pushMeasureError(errorMsg);
             staffNumber = 1;
             this.currentClefNumber = staffNumber + 1;
+          }
+        }
+        if (this.musicSheet.Rules?.DisplayPartView) {
+          const partView: PartView = this.instrument.getPartView(staffNumber);
+          const partClef: ClefEnum = this.clefEnumFromSign(partView?.clefSign);
+          if (partView?.clefSign && partClef !== undefined) {
+            clefEnum = partClef;
+            if (!isNaN(partView.clefLine)) {
+              line = partView.clefLine;
+            }
+            clefOctaveOffset = partView.clefOctaveChange;
+            if (!ClefInstruction.isSupportedClef(clefEnum)) {
+              clefEnum = ClefEnum.G;
+              line = 2;
+            }
           }
         }
 
